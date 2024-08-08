@@ -12,7 +12,8 @@ class RobotState:
     '''
     def __init__(self, node: Node):
         self.node = node
-        self.joint_state_sub = self.node.create_subscription(JointState, '/joint_states', self.joint_state_callback, 10)
+        self.joint_state_sub = self.node.create_subscription(
+            JointState, '/joint_states', self.joint_state_callback, 10)
         self.fk_client = self.node.create_client(GetPositionFK, '/compute_fk')
         self.ik_client = self.node.create_client(GetPositionIK, '/compute_ik')
         self.joint_state = None
