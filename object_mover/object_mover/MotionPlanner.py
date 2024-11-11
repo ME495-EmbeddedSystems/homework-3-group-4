@@ -2,8 +2,8 @@ from rclpy.action import ActionClient
 from moveit_msgs.action import MoveGroup
 from geometry_msgs.msg import Pose
 from sensor_msgs.msg import JointState
-from moveit_msgs.msg import RobotState, Constraints, MotionPlanRequest
-from typing import Optional, List
+from moveit_msgs.msg import RobotState, Constraints, MotionPlanRequest, JointConstraint
+from typing import Optional, List, Dict
 
 
 class MotionPlanner:
@@ -45,18 +45,40 @@ class MotionPlanner:
         result = await goal_handle.get_result_async()
         return result.result.error_code == 0
 
-    async def plan_joint_path(self, start_joints: Optional[List[float]], goal_joints: List[float]):
+    async def plan_joint_path(self, start_joints: Optional[List[float]], goal_joints: Dict[str, float]): # noqa 501
         """
-        Plan a path from a starting joint configuration to a goal joint configuration.
+        Plan a path from a valid starting joint configuration to a valid goal joint configuration.
 
         :param start_joints: Starting joint angles. Uses current robot state if not provided.
         :type start_joints: List[float], optional
         :param goal_joints: Goal joint angles.
-        :type goal_joints: List[float]
+        :type goal_joints: Dict[str, float]
         :returns: The planned motion path request.
         :rtype: moveit_msgs.msg.MotionPlanRequest
         """
-        pass
+        path = MotionPlanRequest()
+        path.start_state.joint_state = JointState()
+
+        if start_joints:
+            path.start_state.joint_state.position = start_joints
+
+        else:
+            # use the current robot state if the starting joint angles are not provided
+            current_state = await self.get_current_robot_state()
+            path.start_state.joint_state.position = current_state.joint_state.position
+
+        path.goal_constraints = [Constraints()]
+        path.goal_constraints[0].joint_constraints = [
+            JointConstraint(
+                joint_name=joint,
+                position=angle,
+                tolerance_below=0.0001,
+                tolerance_above=0.0001,
+                weight=1.0
+            )
+            for joint, angle in goal_joints.items()
+        ]
+        return path
 
     async def plan_pose_to_pose(self, start_pose: Optional[Pose], goal_pose: Optional[Pose]):
         """
