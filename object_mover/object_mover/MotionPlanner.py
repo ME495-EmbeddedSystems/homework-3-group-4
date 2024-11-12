@@ -1,12 +1,16 @@
 from rclpy.action import ActionClient
+from rclpy.node import Node
 from moveit_msgs.action import MoveGroup
 from geometry_msgs.msg import Pose
 from sensor_msgs.msg import JointState
-from moveit_msgs.msg import RobotState, Constraints, MotionPlanRequest, JointConstraint
+from moveit_msgs.msg import RobotState, Constraints, MotionPlanRequest, JointConstraint, PositionIKRequest
+from moveit_msgs.srv import GetPositionIK
 from typing import Optional, List, Dict
+import utils
 
 
-class MotionPlanner:
+
+class MotionPlanner(Node):
     """
     A class for planning motion paths using MoveIt.
 
@@ -25,6 +29,7 @@ class MotionPlanner:
     def __init__(self):
         """Initialize the MotionPlanner class."""
         self.client = ActionClient(self, MoveGroup, 'move_action')
+        self.ik_client = self.create_client(GetPositionIK, 'compute_ik')
 
         if not self.client.wait_for_server(timeout_sec=10):
             raise RuntimeError('MoveGroup action server not ready')
@@ -91,7 +96,37 @@ class MotionPlanner:
         :returns: The planned motion path request.
         :rtype: moveit_msgs.msg.MotionPlanRequest
         """
-        pass
+        path = MotionPlanRequest()
+
+        if not start_pose:
+            current_state = await self.get_current_robot_state()
+            path.start_state.joint_state.position = current_state.joint_state.position
+
+        if not goal_pose.position: # finish the points 2.2 and 2.3
+            ikrequest = PositionIKRequest()
+            ikrequest.group_name = 'fer_joint7'
+            ikrequest.pose_stamped.pose = goal_pose
+            current_state = await self.get_current_robot_state()
+            ikrequest.robot_state = current_state
+
+            computed_joint_constraints = Constraints()
+            joint_constraint = JointConstraint()
+
+            path_solution = await self.ik_client.call_async(ikrequest)
+            for index, name in path_solution.joint_state.name:
+                position = path_solution.joint_state.positon[index]
+                joint_constraint.joint_name = name
+                joint_constraint.position = position
+                joint_constraint.tolerance_above = 0.0001
+                joint_constraint.tolerance_below = 0.0001
+                joint_constraint.weight = 1.0
+                computed_joint_constraints.joint_constraints.append(joint_constraint)
+
+        path.goal_constraints = computed_joint_constraints
+        path.start_state = current_state
+
+        return path
+        
 
     async def plan_cartesian_path(self, waypoints: List[Pose]):
         """
