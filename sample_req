@@ -1,0 +1,14 @@
+#!/bin/bash
+
+ros2 service call /empty_service object_mover_interfaces/srv/FrankaJointRequest "
+{joint_angles: [
+0.0,
+-1.57,
+0.0,
+-1.57,
+0.0,
+1.57,
+1.0,
+0.0,
+0.0,
+]}"

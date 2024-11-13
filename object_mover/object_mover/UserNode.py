@@ -1,5 +1,4 @@
 import rclpy
-import math
 from rclpy.node import Node
 from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 from object_mover.MotionPlanner import MotionPlanner
@@ -8,7 +7,7 @@ from moveit_msgs.msg import MotionPlanRequest
 from rclpy.action import ActionServer
 from moveit_msgs.action import MoveGroup
 import object_mover.utils as utils
-
+from object_mover_interfaces.srv import FrankaJointRequest
 
 def main(args=None):
     rclpy.init(args=args)
@@ -31,34 +30,26 @@ class UserNode(Node):
                                     callback_group = self._cbgroup)
         self.cbgroup = MutuallyExclusiveCallbackGroup()
 
-        # create a timer
-        self.create_timer(1.0, self.plan_joint_path, callback_group=self.cbgroup)
+        # create a service that takes an empty request
+        self.serv = self.create_service(FrankaJointRequest, 'empty_service', self.empty_service_callback, callback_group=self.cbgroup)
 
-    async def plan_joint_path(self):
-        
-        goal_joints = {
-            "fer_joint1": math.radians(32),
-            "fer_joint2": math.radians(-31),
-            "fer_joint3": math.radians(-29),
-            "fer_joint4": math.radians(-149),
-            "fer_joint5": math.radians(-17),
-            "fer_joint6": math.radians(119),
-            "fer_joint7": math.radians(60),
-            "fer_finger_joint1": 0.0,
-            "fer_finger_joint2": 0.0,
-        }
+
+    async def empty_service_callback(self, request: FrankaJointRequest, response):
+        self.get_logger().info("Empty Service Called")
         motion_plan_request: MotionPlanRequest = await self.motion_planner.plan_joint_path(start_joints=None, goal_joints = {
-            "fer_joint1": 0.0,
-            "fer_joint2": -0.785,
-            "fer_joint3": 0.0,
-            "fer_joint4": -2.355,
-            "fer_joint5": 0.0,
-            "fer_joint6": 1.57,
-            "fer_joint7": 0.0,
-            "fer_finger_joint1": 0.0,
-            "fer_finger_joint2": 0.0,
+            "fer_joint1": request.joint_angles[0],
+            "fer_joint2": request.joint_angles[1],
+            "fer_joint3": request.joint_angles[2],
+            "fer_joint4": request.joint_angles[3],
+            "fer_joint5": request.joint_angles[4],
+            "fer_joint6": request.joint_angles[5],
+            "fer_joint7": request.joint_angles[6],
+            "fer_finger_joint1": request.joint_angles[7],
+            "fer_finger_joint2": request.joint_angles[8],
         })
         await self.motion_planner.execute_plan(motion_plan_request)
+        return response
+
 
     async def move_action_callback(self, goal_handle):
         self.get_logger().info("Move Action Called. Goal Is")
@@ -68,21 +59,6 @@ class UserNode(Node):
        
         self.get_logger().info("Awaiting the result")
         self.get_logger().info("Interception successful, returning the result")
-        
-        motion_plan_request: MotionPlanRequest = await self.motion_planner.plan_joint_path(start_joints=None, goal_joints = {
-            
-            
-            "fer_joint1": 0.0,
-            "fer_joint2": -0.785,
-            "fer_joint3": 0.0,
-            "fer_joint4": -2.355,
-            "fer_joint5": 0.0,
-            "fer_joint6": 1.57,
-            "fer_joint7": 0.0,
-            "fer_finger_joint1": 0.0,
-            "fer_finger_joint2": 0.0,
-        })
-        await self.motion_planner.execute_plan(motion_plan_request)
         return
 
 if __name__ == '__main__':

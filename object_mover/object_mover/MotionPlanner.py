@@ -1,4 +1,6 @@
+import rclpy
 from rclpy.action import ActionClient
+import rclpy.callback_groups
 from rclpy.node import Node
 from moveit_msgs.action import MoveGroup
 from geometry_msgs.msg import Pose
@@ -29,14 +31,14 @@ class MotionPlanner:
         """Initialize the MotionPlanner class."""
         self.node = node
         self.robot_state = robot_state
-        self.node.action_client = ActionClient(self.node, MoveGroup, 'move_action')
-        self.ik_client = self.node.create_client(GetPositionIK, 'compute_ik')
-        self.fk_client = self.node.create_client(GetPositionFK, 'compute_fk')
+        self.node.action_client = ActionClient(self.node, MoveGroup, 'move_action', callback_group=rclpy.callback_groups.MutuallyExclusiveCallbackGroup())
+        self.ik_client = self.node.create_client(GetPositionIK, 'compute_ik', callback_group=rclpy.callback_groups.MutuallyExclusiveCallbackGroup())
+        self.fk_client = self.node.create_client(GetPositionFK, 'compute_fk', callback_group=rclpy.callback_groups.MutuallyExclusiveCallbackGroup())
 
         if not self.node.action_client.wait_for_server(timeout_sec=10):
             raise RuntimeError('MoveGroup action server not ready')
 
-    async def execute_plan(self, plan):
+    async def execute_plan(self, plan: MotionPlanRequest) -> bool:
         """
         Execute a previously planned motion.
 
@@ -48,7 +50,7 @@ class MotionPlanner:
         
         move_group_goal = MoveGroup.Goal()
         move_group_goal.request = plan
-
+        move_group_goal.planning_options.plan_only = False
         goal_handle = await self.node.action_client.send_goal_async(move_group_goal)
         if not goal_handle.accepted:
             return False
@@ -81,6 +83,7 @@ class MotionPlanner:
             path.start_state.joint_state.position = current_state.joint_state.position
 
         path.goal_constraints = [Constraints()]
+        path.group_name = 'fer_arm'
         path.goal_constraints[0].joint_constraints = [
             JointConstraint(
                 joint_name=joint,
@@ -91,6 +94,7 @@ class MotionPlanner:
             )
             for joint, angle in goal_joints.items()
         ]
+        
         self.node.get_logger().info(f"Path: {path}")
         return path
 
