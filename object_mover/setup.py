@@ -20,6 +20,7 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
+            'user_node = object_mover.UserNode:main',
         ],
     },
 )

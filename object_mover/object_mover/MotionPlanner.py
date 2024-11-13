@@ -3,7 +3,7 @@ from rclpy.node import Node
 from moveit_msgs.action import MoveGroup
 from geometry_msgs.msg import Pose
 from sensor_msgs.msg import JointState
-from moveit_msgs.msg import Constraints, MotionPlanRequest, JointConstraint, PositionIKRequest
+from moveit_msgs.msg import RobotState, Constraints, MotionPlanRequest, JointConstraint, PositionIKRequest
 from moveit_msgs.srv import GetPositionIK, GetPositionFK
 from typing import Optional, List, Dict
 from object_mover.RobotState import RobotState as CustomRobotState
@@ -29,11 +29,11 @@ class MotionPlanner:
         """Initialize the MotionPlanner class."""
         self.node = node
         self.robot_state = robot_state
-        self.client = ActionClient(self, MoveGroup, 'move_action')
+        self.node.action_client = ActionClient(self.node, MoveGroup, 'move_action')
         self.ik_client = self.node.create_client(GetPositionIK, 'compute_ik')
         self.fk_client = self.node.create_client(GetPositionFK, 'compute_fk')
 
-        if not self.client.wait_for_server(timeout_sec=10):
+        if not self.node.action_client.wait_for_server(timeout_sec=10):
             raise RuntimeError('MoveGroup action server not ready')
 
     async def execute_plan(self, plan):
@@ -45,14 +45,18 @@ class MotionPlanner:
         :returns: True if execution is successful, False otherwise.
         :rtype: bool
         """
-        goal_handle = await self.client.send_goal_async(plan)
+        
+        move_group_goal = MoveGroup.Goal()
+        move_group_goal.request = plan
+
+        goal_handle = await self.node.action_client.send_goal_async(move_group_goal)
         if not goal_handle.accepted:
             return False
-
+        self.node.get_logger().info(goal_handle)
         result = await goal_handle.get_result_async()
         return result.result.error_code == 0
 
-    async def plan_joint_path(self, start_joints: Optional[List[float]], goal_joints: Dict[str, float]): # noqa 501
+    async def plan_joint_path(self, start_joints: Optional[List[float]], goal_joints: Dict[str, float]) -> MotionPlanRequest: # noqa 501
         """
         Plan a path from a valid starting joint configuration to a valid goal joint configuration.
 
@@ -71,7 +75,7 @@ class MotionPlanner:
 
         else:
             # use the current robot state if the starting joint angles are not provided
-            current_state = await self.get_current_robot_state()
+            current_state = self.get_current_robot_state()
             path.start_state.joint_state.position = current_state.joint_state.position
 
         path.goal_constraints = [Constraints()]
@@ -99,7 +103,7 @@ class MotionPlanner:
         :rtype: moveit_msgs.msg.MotionPlanRequest
         """
         path = MotionPlanRequest()
-        current_state = await self.get_current_robot_state()
+        current_state = self.get_current_robot_state()
 
 
         if not start_pose:
@@ -194,7 +198,7 @@ class MotionPlanner:
         """
         pass
 
-    async def get_current_robot_state(self) -> RobotState:
+    def get_current_robot_state(self) -> RobotState:
         """
         Get the current state of the robot.
 
