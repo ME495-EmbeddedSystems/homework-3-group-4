@@ -1,38 +1,21 @@
 import numpy as np
 
 
-def quaternion_from_euler(ai, aj, ak):
+def robot_joints() -> list[str]:
     """
-    Convert to quaternion from euler angles.
-
-    Args:
-    ai (float(radians)): the roll angle
-    aj (float(radians)): the pitch angle
-    ak (float(radians)): the yaw angle
-
-    Returns
-    -------
-    q: a quaternion converted from the euler angles
-
+    Return the list of robot joints.
+    
+    :returns: The list of robot joints.
+    :rtype: list[str]
     """
-    ai /= 1.0
-    aj /= 1.0
-    ak /= 1.0
-    ci = np.cos(ai)
-    si = np.sin(ai)
-    cj = np.cos(aj)
-    sj = np.sin(aj)
-    ck = np.cos(ak)
-    sk = np.sin(ak)
-    cc = ci * ck
-    cs = ci * sk
-    sc = si * ck
-    ss = si * sk
-
-    q = np.empty((3,))
-    q[-1] = cj * sc - sj * cs
-    q[0] = cj * ss + sj * cc
-    q[1] = cj * cs - sj * sc
-    q[2] = cj * cc + sj * ss
-
-    return q
+    return [
+        'fer_joint1',
+        'fer_joint2',
+        'fer_joint3',
+        'fer_joint4',
+        'fer_joint5',
+        'fer_joint6',
+        'fer_joint7',
+        'fer_finger)joint1',
+        'fer_finger_joint2',
+    ]
