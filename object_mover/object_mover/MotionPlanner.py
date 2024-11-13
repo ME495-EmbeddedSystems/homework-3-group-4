@@ -52,8 +52,10 @@ class MotionPlanner:
         goal_handle = await self.node.action_client.send_goal_async(move_group_goal)
         if not goal_handle.accepted:
             return False
-        self.node.get_logger().info(goal_handle)
+
+        # print type of goal_handle
         result = await goal_handle.get_result_async()
+        self.node.get_logger().info(f"{result}")        
         return result.result.error_code == 0
 
     async def plan_joint_path(self, start_joints: Optional[List[float]], goal_joints: Dict[str, float]) -> MotionPlanRequest: # noqa 501
@@ -89,6 +91,7 @@ class MotionPlanner:
             )
             for joint, angle in goal_joints.items()
         ]
+        self.node.get_logger().info(f"Path: {path}")
         return path
 
     async def plan_pose_to_pose(self, start_pose: Optional[Pose], goal_pose: Optional[Pose]):
