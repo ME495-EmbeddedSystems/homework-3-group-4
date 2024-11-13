@@ -10,7 +10,7 @@ import utils
 
 
 
-class MotionPlanner(Node):
+class MotionPlanner:
     """
     A class for planning motion paths using MoveIt.
 
@@ -26,11 +26,12 @@ class MotionPlanner(Node):
         The action client used to communicate with the MoveIt action server.
     """
 
-    def __init__(self):
+    def __init__(self, node):
         """Initialize the MotionPlanner class."""
+        self.node = node
         self.client = ActionClient(self, MoveGroup, 'move_action')
-        self.ik_client = Node.create_client(GetPositionIK, 'compute_ik')
-        self.fk_client = Node.create_client(GetPositionFK, 'compute_fk')
+        self.ik_client = self.node.create_client(GetPositionIK, 'compute_ik')
+        self.fk_client = self.node.create_client(GetPositionFK, 'compute_fk')
 
         if not self.client.wait_for_server(timeout_sec=10):
             raise RuntimeError('MoveGroup action server not ready')
@@ -118,7 +119,7 @@ class MotionPlanner(Node):
             # Fill out the goal_pose.position with the current position
             # To get the current position, we will need to call the GetPositionFK service
             fkrequest = GetPositionFK.Request()
-            fkrequest.fk_link_names = ['fer_link_7']
+            fkrequest.fk_link_names = ['fer_link7']
             fkrequest.robot_state = current_state
             fk_solution = await self.fk_client.call_async(fkrequest)
             end_effector_pose = fk_solution[0]
@@ -126,7 +127,7 @@ class MotionPlanner(Node):
 
         if not goal_pose.orientation:
             fkrequest = GetPositionFK.Request()
-            fkrequest.fk_link_names = ['fer_link_7']
+            fkrequest.fk_link_names = ['fer_link7']
             fkrequest.robot_state = current_state
             fk_solution = await self.fk_client.call_async(fkrequest)
             end_effector_pose = fk_solution[0]
