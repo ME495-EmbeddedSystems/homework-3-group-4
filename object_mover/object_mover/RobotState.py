@@ -34,12 +34,8 @@ class RobotState:
         request = GetPositionFK.Request()
         request.fk_link_names = ['fer_link7']
         request.robot_state.joint_state = joint_state
-        future = self.fk_client.call_async(request)
-        rclpy.spin_until_future_complete(self.node, future)
-        if future.result():
-            return future.result().solution.pose_stamped
-        else:
-            return None
+        fk_solution = await self.fk_client.call_async(request)    
+        return fk_solution
         
     def get_robot_state(self):
         robot_state = RobotState()
