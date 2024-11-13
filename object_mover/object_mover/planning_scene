@@ -1,0 +1,71 @@
+from moveit_msgs.msg import CollisionObject
+from shape_msgs.msg import SolidPrimitive
+from geometry_msgs.msg import PoseStamped,Pose
+from moveit.planning import MoveItPy
+
+
+#Add or remove boxes to the planning scene dynamically, at any location
+
+class PlanningScene:
+    
+    def __init__(self):
+        self.panda = MoveItPy(node_name="moveit_py_planning_scene")
+        self.panda_arm = panda.get_planning_component("panda_arm")
+        self.planning_scene_monitor = panda.get_planning_scene_monitor() 
+        self.objects = {}  # Dictionary to store objects with their properties (location, size)
+        self.attached_objects = {}  # Dictionary to store attached objects to the end-effector
+
+    # Method to add a box to the scene at a specified location and size
+    def add_box(self, name, position, size):
+        # position and size are tuples like (x, y, z) and (width, height, depth)
+        # --------
+        with self.planning_scene_monitor.read_write() as scene:
+            collision_object = CollisionObject()
+            collision_object.header.frame_id = "panda_link0"
+            collision_object.id = "boxes"
+
+            box_pose = Pose()
+            box_pose.position.x = 0.15
+            box_pose.position.y = 0.1
+            box_pose.position.z = 0.6
+
+            box = SolidPrimitive()
+            box.type = SolidPrimitive.BOX
+            box.dimensions = dimensions
+
+            collision_object.primitives.append(box)
+            collision_object.primitive_poses.append(box_pose)
+            collision_object.operation = CollisionObject.ADD
+
+            scene.apply_collision_object(collision_object)
+            scene.current_state.update()  # Important to ensure the scene is updated
+        # ----------------------
+        box_pose = PoseStamped()
+        box_pose.pose.position.x, box_pose.pose.position.y, box_pose.pose.position.z = position
+        box_pose.pose.orientation.w = 1.0  # Neutral orientation
+        self.objects[name] = {
+            "position": position,
+            "size": size
+        }
+
+    # Method to remove a box from the scene by name
+    def remove_box(self, name):
+        if name in self.objects:
+            del self.objects[name]
+            # Remove the box from the planning scene using the appropriate API calls
+
+    # Method to attach a collision object to the robot's end-effector
+    def attach_object(self, name):
+        if name in self.objects:
+            self.attached_objects[name] = self.objects[name]
+            # Attach the object to the end-effector using the appropriate API calls
+
+    # Method to detach an object from the robot's end-effector
+    def detach_object(self, name):
+        if name in self.attached_objects:
+            del self.attached_objects[name]
+            # Detach the object from the end-effector using the appropriate API calls
+
+    # Optional: Method to get the properties of an object
+    def get_object_properties(self, name):
+        return self.objects.get(name)
