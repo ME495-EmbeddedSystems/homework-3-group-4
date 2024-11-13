@@ -3,11 +3,10 @@ from rclpy.node import Node
 from moveit_msgs.action import MoveGroup
 from geometry_msgs.msg import Pose
 from sensor_msgs.msg import JointState
-from moveit_msgs.msg import RobotState, Constraints, MotionPlanRequest, JointConstraint, PositionIKRequest
+from moveit_msgs.msg import Constraints, MotionPlanRequest, JointConstraint, PositionIKRequest
 from moveit_msgs.srv import GetPositionIK, GetPositionFK
 from typing import Optional, List, Dict
-import utils
-
+from object_mover.RobotState import RobotState as CustomRobotState
 
 
 class MotionPlanner:
@@ -26,9 +25,10 @@ class MotionPlanner:
         The action client used to communicate with the MoveIt action server.
     """
 
-    def __init__(self, node):
+    def __init__(self, node: Node, robot_state: CustomRobotState):
         """Initialize the MotionPlanner class."""
         self.node = node
+        self.robot_state = robot_state
         self.client = ActionClient(self, MoveGroup, 'move_action')
         self.ik_client = self.node.create_client(GetPositionIK, 'compute_ik')
         self.fk_client = self.node.create_client(GetPositionFK, 'compute_fk')
@@ -201,4 +201,4 @@ class MotionPlanner:
         :returns: The current state of the robot.
         :rtype: moveit_msgs.msg.RobotState
         """
-        pass
+        return self.robot_state.get_robot_state()

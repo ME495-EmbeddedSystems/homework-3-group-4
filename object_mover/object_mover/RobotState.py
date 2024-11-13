@@ -1,12 +1,10 @@
 from moveit_msgs.srv import GetPositionFK, GetPositionIK
-import rclpy.clock
 from sensor_msgs.msg import JointState
-from moveit_msgs.msg import RobotState
-import rclpy
-
+from rclpy.node import Node
+from moveit_msgs.msg import RobotState as MoveitRobotState
 
 class RobotState:
-    def __init__(self, ros_node):
+    def __init__(self, ros_node: Node):
         self.node = ros_node
         self.joint_state_sub = self.node.create_subscription(JointState, '/joint_states', self.joint_state_callback, 10)
         self.fk_client = self.node.create_client(GetPositionFK, '/compute_fk')
@@ -15,8 +13,6 @@ class RobotState:
 
     def joint_state_callback(self, msg):
         self.joint_state = msg
-
-        
 
     async def compute_IK(self, joint_state: JointState = None):
         if joint_state is None:
@@ -37,8 +33,8 @@ class RobotState:
         fk_solution = await self.fk_client.call_async(request)    
         return fk_solution
         
-    def get_robot_state(self):
-        robot_state = RobotState()
+    def get_robot_state(self) -> MoveitRobotState:
+        robot_state = MoveitRobotState()
         robot_state.joint_state = self.joint_state
         return robot_state        
         
