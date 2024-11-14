@@ -215,4 +215,8 @@ moveit_msgs.action.MoveGroup_Goal(
     ),
 )
 
+<<<<<<< HEAD
 ```
+=======
+```
+>>>>>>> main

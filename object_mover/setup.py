@@ -10,6 +10,8 @@ setup(
         ('share/ament_index/resource_index/packages',
             ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
+        # add ;launch files
+        ('share/' + package_name + '/launch', ['launch/object_mover.launch.py']),
     ],
     install_requires=['setuptools'],
     zip_safe=True,
@@ -20,6 +22,7 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
+            'user_node = object_mover.UserNode:main',
         ],
     },
 )
