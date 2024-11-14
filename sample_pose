@@ -1,4 +1,4 @@
-ros2 service call /pose_service object_mover_interfraces/srv/FrankaPoseRequest "{sample_goal_pose: {position: {x: 0.490521, y: 0.337323, z: 0.784553}, orientation: {x: 0.923871, y: -0.382703, z: -6.93716e-05, w: 772692e-05} }}"
+ros2 service call /pose_service object_mover_interfaces/srv/FrankaPoseRequest "{sample_goal_pose: {position: {x: 0.490521, y: 0.337323, z: 0.784553}, orientation: {x: 0.923871, y: -0.382703, z: -6.93716e-05, w: 772692e-05}}}"
 
 
 
