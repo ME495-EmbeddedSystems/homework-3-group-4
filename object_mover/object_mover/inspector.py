@@ -28,11 +28,13 @@ from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 from builtin_interfaces.msg import Time
 
 from sensor_msgs.msg import JointState
-from moveit_msgs.msg import RobotState as RobotStateMoveit
+from moveit_msgs.msg import RobotState as RobotStateMoveit , Constraints
 
 from moveit_msgs.srv import GetPositionFK
 
 from  object_mover.RobotState import RobotState
+
+from geometry_msgs.msg import Pose, Point, Quaternion
 
 class InspectMoveit(Node):
 
@@ -87,11 +89,11 @@ class InspectMoveit(Node):
             self.get_logger().info("Sending request....")
             req = await self.get_cartesian_path_request()
             self.get_logger().info(f'{req}')
-            # self.resp = self.plan_cart_path_client.call_async(req)
+            self.resp = self.plan_cart_path_client.call_async(req)
         
         elif (self.resp.done):
             pass
-            #print(self.resp.result())
+            print(self.resp.result())
 
     def server_callback(self, move: ServerGoalHandle):
 
@@ -137,12 +139,27 @@ class InspectMoveit(Node):
 
         request.start_state = robot_state
 
-        print("!!!")
         start_pos = await self.robot_state.compute_FK()
 
-        waypoints = [start_pos]
+        #Get the Pose element out of the response
+        start_pos = start_pos.pose_stamped[0].pose
+
+        position = Point(x=0.4, y=4.0639413383265914e-16, z=0.6972820523028392)
+        orientation = Quaternion(x=0.9238795325112868, y=-0.38268343236508945, z=-1.4845532705112254e-16, w=-2.783989563323368e-16)
+
+        # Create the Pose object
+        pose = Pose(position=position, orientation=orientation)
+
+        waypoints = [start_pos,pose]
 
         request.waypoints = waypoints
+
+        request.max_step = 0.1
+
+        request.avoid_collisions = False
+
+        request.path_constraints = Constraints()
+
         
         return request
     
