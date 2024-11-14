@@ -31,11 +31,11 @@ class UserNode(Node):
         self.cbgroup = MutuallyExclusiveCallbackGroup()
 
         # create a service that takes an empty request
-        self.serv = self.create_service(FrankaJointRequest, 'empty_service', self.empty_service_callback, callback_group=self.cbgroup)
+        self.serv = self.create_service(FrankaJointRequest, 'test_plan_joint_path', self.joint_path_callback, callback_group=self.cbgroup)
 
-        self.pose_serv = self.create_service(FrankaPoseRequest, 'pose_service', self.pose_service_callback, callback_group=self.cbgroup)
+        self.pose_serv = self.create_service(FrankaPoseRequest, 'test_plan_pose_to_pose', self.pose_to_pose_callback, callback_group=self.cbgroup)
 
-    async def empty_service_callback(self, request: FrankaJointRequest, response):
+    async def joint_path_callback(self, request: FrankaJointRequest, response):
         self.get_logger().info("Empty Service Called")
         motion_plan_request: MotionPlanRequest = await self.motion_planner.plan_joint_path(start_joints=None, goal_joints = {
             "fer_joint1": request.joint_angles[0],
@@ -51,7 +51,7 @@ class UserNode(Node):
         await self.motion_planner.execute_plan(motion_plan_request)
         return response
 
-    async def pose_service_callback(self, request: FrankaPoseRequest, 
+    async def pose_to_pose_callback(self, request: FrankaPoseRequest, 
     response):
         self.get_logger().info("Pose service called")
         # self.get_logger().info(f"{request.sample_goal_pose}")

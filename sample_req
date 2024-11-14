@@ -1,6 +1,6 @@
 #!/bin/bash
 
-ros2 service call /empty_service object_mover_interfaces/srv/FrankaJointRequest "
+ros2 service call /test_plan_joint_path object_mover_interfaces/srv/FrankaJointRequest "
 {joint_angles: [
 0.0,
 -1.57,
