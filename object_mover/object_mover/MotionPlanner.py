@@ -110,58 +110,42 @@ class MotionPlanner:
         :rtype: moveit_msgs.msg.MotionPlanRequest
         """
         path = MotionPlanRequest()
+        path.group_name = 'fer_arm'
         current_state = self.get_current_robot_state()
-
 
         if not start_pose:
             path.start_state = current_state
         else:
-            ikrequest = PositionIKRequest()
-            ikrequest.group_name = 'fer_joint7'
-            ikrequest.pose_stamped.pose = start_pose
-            ikrequest.robot_state = current_state
-            computed_joint_constraints = Constraints()
-            joint_constraint = JointConstraint()
-            start_state_ik_solution = await self.ik_client.call_async(ikrequest)
-            
-            path.start_state = start_state_ik_solution 
+            start_state_ik_solution = await CustomRobotState.compute_IK(self.robot_state,start_pose, 'fer_arm')
+            path.start_state = start_state_ik_solution.solution 
 
         if not goal_pose.position: # finish the points 2.2 and 2.3 (not start pose)
             # Fill out the goal_pose.position with the current position
-            # To get the current position, we will need to call the GetPositionFK service
-            fkrequest = GetPositionFK.Request()
-            fkrequest.fk_link_names = ['fer_link7']
-            fkrequest.robot_state = current_state
-            fk_solution = await self.fk_client.call_async(fkrequest)
+            # To get the current position, we will need to call the compute_FK function
+            fk_solution = await CustomRobotState.compute_FK(self.robot_state,['fer_link7'])
             end_effector_pose = fk_solution[0]
             goal_pose.position = end_effector_pose[0].pose.position
 
         if not goal_pose.orientation:
-            fkrequest = GetPositionFK.Request()
-            fkrequest.fk_link_names = ['fer_link7']
-            fkrequest.robot_state = current_state
-            fk_solution = await self.fk_client.call_async(fkrequest)
+            fk_solution = await CustomRobotState.compute_FK(self.robot_state,['fer_link7'])
             end_effector_pose = fk_solution[0]
             goal_pose.orientation = end_effector_pose[0].pose.orientation
 
-        ikrequest = PositionIKRequest()
-        ikrequest.group_name = 'fer_joint7'
-        ikrequest.pose_stamped.pose = goal_pose
-        ikrequest.robot_state = path.start_state
+        ik_solution = await CustomRobotState.compute_IK(self.robot_state,goal_pose, path.start_state.joint_state) 
+        # Write a utility function for this
         computed_joint_constraints = Constraints()
-        joint_constraint = JointConstraint()
-        path_solution = await self.ik_client.call_async(ikrequest)
-        for index, name in enumerate(path_solution.joint_state.name):
-            position = path_solution.joint_state.position[index]
-            joint_constraint.joint_name = name
+    
+        for index, joint_name in enumerate(ik_solution.solution.joint_state.name):
+            position = ik_solution.solution.joint_state.position[index]
+            joint_constraint = JointConstraint()
+            joint_constraint.joint_name = joint_name
             joint_constraint.position = position
             joint_constraint.tolerance_above = 0.0001
             joint_constraint.tolerance_below = 0.0001
             joint_constraint.weight = 1.0
             computed_joint_constraints.joint_constraints.append(joint_constraint)
 
-        path.goal_constraints = computed_joint_constraints
-
+        path.goal_constraints = [computed_joint_constraints]
         return path
         
 

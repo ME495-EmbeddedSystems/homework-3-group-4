@@ -1,0 +1,3 @@
+geometry_msgs/Pose sample_goal_pose
+---
+bool result

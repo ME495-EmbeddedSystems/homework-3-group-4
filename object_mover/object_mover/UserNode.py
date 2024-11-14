@@ -7,7 +7,7 @@ from moveit_msgs.msg import MotionPlanRequest
 from rclpy.action import ActionServer
 from moveit_msgs.action import MoveGroup
 import object_mover.utils as utils
-from object_mover_interfaces.srv import FrankaJointRequest
+from object_mover_interfaces.srv import FrankaJointRequest, FrankaPoseRequest
 
 def main(args=None):
     rclpy.init(args=args)
@@ -33,6 +33,7 @@ class UserNode(Node):
         # create a service that takes an empty request
         self.serv = self.create_service(FrankaJointRequest, 'empty_service', self.empty_service_callback, callback_group=self.cbgroup)
 
+        self.pose_serv = self.create_service(FrankaPoseRequest, 'pose_service', self.pose_service_callback, callback_group=self.cbgroup)
 
     async def empty_service_callback(self, request: FrankaJointRequest, response):
         self.get_logger().info("Empty Service Called")
@@ -50,6 +51,13 @@ class UserNode(Node):
         await self.motion_planner.execute_plan(motion_plan_request)
         return response
 
+    async def pose_service_callback(self, request: FrankaPoseRequest, 
+    response):
+        self.get_logger().info("Pose service called")
+        # self.get_logger().info(f"{request.sample_goal_pose}")
+        motion_plan_request: MotionPlanRequest = await self.motion_planner.plan_pose_to_pose(start_pose=None, goal_pose=request.sample_goal_pose)
+        await self.motion_planner.execute_plan(motion_plan_request)
+        return response
 
     async def move_action_callback(self, goal_handle):
         self.get_logger().info("Move Action Called. Goal Is")
