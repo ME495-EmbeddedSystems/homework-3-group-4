@@ -31,9 +31,7 @@ class MotionPlanner:
         """Initialize the MotionPlanner class."""
         self.node = node
         self.robot_state = robot_state
-        self.node.action_client = ActionClient(self.node, MoveGroup, 'move_action', callback_group=rclpy.callback_groups.MutuallyExclusiveCallbackGroup())
-        self.ik_client = self.node.create_client(GetPositionIK, 'compute_ik', callback_group=rclpy.callback_groups.MutuallyExclusiveCallbackGroup())
-        self.fk_client = self.node.create_client(GetPositionFK, 'compute_fk', callback_group=rclpy.callback_groups.MutuallyExclusiveCallbackGroup())
+        self.node.action_client = ActionClient(self.node, MoveGroup, 'move_action', callback_group=rclpy.callback_groups.MutuallyExclusiveCallbackGroup()) 
 
         if not self.node.action_client.wait_for_server(timeout_sec=10):
             raise RuntimeError('MoveGroup action server not ready')
