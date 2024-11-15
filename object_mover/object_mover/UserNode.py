@@ -45,17 +45,16 @@ class UserNode(Node):
 
         self.plan_test = PlanningScene(self)
 
-
-    def test_planning_scene_callback(self, request, response):
+    async def test_planning_scene_callback(self, request, response):
         position = (1.0,1.0,1.0)
-        dimenstion = (2.0,2.0,2.0)
+        dimenstion = (0.2,0.2,0.2)
         name = 'box'
-        self.plan_test.add_collision_objects(name, position, dimenstion)
+        await self.plan_test.add_collision_objects(name, position, dimenstion)
         response.result = True
         return response
     
-    def test_planning_scene_remove_callback(self, request, response):
-        self.plan_test.remove_box('box')
+    async def test_planning_scene_remove_callback(self, request, response):
+        await self.plan_test.remove_box('box')
         response.result = True
         return response       
     

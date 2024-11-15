@@ -13,36 +13,36 @@ class PlanningScene:
         self.get_scene = self.node.create_client(GetPlanningScene, '/get_planning_scene')
         while not self.get_scene.wait_for_service(timeout_sec=1.0):
             self.get_logger().info('get_scene service not available, waiting again...')
-
+ 
         self.objects = {}  # Dictionary to store objects with their properties (location, size)
         self.attach_object_dict = {} 
         self.scene_publisher = self.node.create_publisher(MoveitPlanningScene, '/monitored_planning_scene', 10)
-        self.scene = MoveitPlanningScene()
-        self.scene.robot_state.joint_state.name = [
-            'fer_joint1',
-            'fer_joint2',
-            'fer_joint3',
-            'fer_joint4',
-            'fer_joint5',
-            'fer_joint6',
-            'fer_joint7',
-            'fer_finger_joint1',
-            'fer_finger_joint2'
-          ]
-        self.scene.robot_state.joint_state.position = [
-            0.0,
-            -0.7853981633974483,
-            0.0,
-            -2.356194490192345,
-            0.0,
-            1.5707963267948966,
-            0.7853981633974483,
-            0.0,
-            0.0
-          ]
+        # self.scene = MoveitPlanningScene()
+        # self.scene.robot_state.joint_state.name = [
+            # 'fer_joint1',
+            # 'fer_joint2',
+            # 'fer_joint3',
+            # 'fer_joint4',
+            # 'fer_joint5',
+            # 'fer_joint6',
+            # 'fer_joint7',
+            # 'fer_finger_joint1',
+            # 'fer_finger_joint2'
+        #   ]
+        # self.scene.robot_state.joint_state.position = [
+            # 0.0,
+            # -0.7853981633974483,
+            # 0.0,
+            # -2.356194490192345,
+            # 0.0,
+            # 1.5707963267948966,
+            # 0.7853981633974483,
+            # 0.0,
+            # 0.0
+        #   ]
 
     # Method to add a box to the scene at a specified location and size
-    def add_collision_objects(self, name, position, dimension):
+    async def add_collision_objects(self, name, position, dimension):
         """
         add the collision object to the environment
 
@@ -50,7 +50,9 @@ class PlanningScene:
             the name of the added box, position (tuple), and dimension (tuple)
         
         """
-        self.node.get_logger().info('@@@@@@@@@@@@@@@@@@@ add_collision_objects run !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+        # self.node.get_logger().info(f'@@@@@@@@@@@@@@@@@@@ add_collision_objects run !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!{self.scene}')
+        self.scene_response  = await self.get_scene.call_async(GetPlanningScene.Request())
+        # self.node.get_logger().info(f'@@@@@@@@@@@@@@@@@@@ PlanningScene run !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!{self.scene_response.scene}')
         collision_object = CollisionObject()
         collision_object.header.frame_id = "base"
         collision_object.id = name
@@ -68,12 +70,12 @@ class PlanningScene:
         collision_object.primitives.append(box)
         collision_object.primitive_poses.append(box_pose)
         collision_object.operation = CollisionObject.ADD
-        self.scene.world.collision_objects.append(collision_object)  
+        self.scene_response.scene.world.collision_objects.append(collision_object)  
 
-        self.scene_publisher.publish(self.scene)
+        self.scene_publisher.publish(self.scene_response.scene)
 
 
-    def remove_box(self, name):
+    async def remove_box(self, name):
         """
         remove the box in the environment
         
@@ -81,17 +83,14 @@ class PlanningScene:
             the box name 
 
         """
-
+        self.scene_response  = await self.get_scene.call_async(GetPlanningScene.Request())
         collision_object = self.objects[name]
         del self.objects[name]
         collision_object.operation = CollisionObject.REMOVE
-        # self.node.get_logger().info(f'before update: {self.scene}')
-        # self.scene = await self.get_scene.call_async(GetPlanningScene)
-        # self.node.get_logger().info(f'after update: {self.scene}')
-        self.scene.world.collision_objects.remove(collision_object)
-        self.scene.is_diff= True
-        self.node.get_logger().info('@@@@@@@@@@@@@@@@@@@ prepare to publish attached objects!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
-        self.scene_publisher.publish(self.scene)
+        self.node.get_logger().info(f'@@@@@@@@@@@@@@@@@@@ PlanningScene before remove !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!{self.scene_response.scene}')
+        self.scene_response.scene.world.collision_objects.remove(collision_object)
+        self.node.get_logger().info(f'@@@@@@@@@@@@@@@@@@@ PlanningScene after remove!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!{self.scene_response.scene}')
+        self.scene_publisher.publish(self.scene_response.scene)
 
 
     #Method to attach a collision object to the robot's end-effector
@@ -118,7 +117,7 @@ class PlanningScene:
         attach_object.link_name = linkname
         #3 update scene 
         self.scene.robot_state.attached_collision_objects.append(attach_object)
-        self.scene.is_diff= True
+        # self.scene.is_diff= True
         self.scene_publisher.publish(self.scene)
         self.node.get_logger().info(f'after attach: {self.scene}')
 
@@ -145,7 +144,6 @@ class PlanningScene:
         ## get scene here 
         self.scene.robot_state.attached_collision_objects.remove(detach_object)
         self.scene.world.collision_objects.append(detach_object.object)
-        self.scene.is_diff= True
+        # self.scene.is_diff= True
         self.scene_publisher.publish(self.scene)
         self.node.get_logger().info(f'after detach: {self.scene}')
-
