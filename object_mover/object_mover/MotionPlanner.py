@@ -31,6 +31,7 @@ class MotionPlanner:
         self.node = node
         self.robot_state = robot_state
         self.saved_plans = {}
+        self.saved_configurations = {}
         self.node.action_client = ActionClient(self.node, MoveGroup, 'move_action', callback_group=rclpy.callback_groups.MutuallyExclusiveCallbackGroup()) 
 
         if not self.node.action_client.wait_for_server(timeout_sec=10):
@@ -155,22 +156,35 @@ class MotionPlanner:
         :param named_configuration: The name of the configuration to plan to.
         :type named_configuration: str
         :returns: The planned motion path request.
-        :rtype: moveit_msgs.msg.MotionPlanRequest | moveit_msgs.msg.RobotTrajectory
+        :rtype: moveit_msgs.msg.MotionPlanRequest
         """
         # for MotionPlanRequest
-        path = self.saved_plans[named_configuration]
-        if isinstance(path, MotionPlanRequest):
-            if start_pose:
-                start_state_ik_solution = await CustomRobotState.compute_IK(self.robot_state, start_pose, 'fer_arm')
-                path.start_state = start_state_ik_solution.solution
+        goal_constraints = self.saved_configurations[named_configuration]
+        
+
+    def save_configuration(self, configuration_name: str, joint_configuration: Dict[str, float]):
+        """
+        Save a joint configuration with a name.
+
+        :param configuration_name: The name of the robot configuration
+        :param joint_configuration: The goal joint angles
+        :type joint_configuration: Dict[str, float]
+        """
+        saved_joint_constraints = [Constraints()]
+        saved_joint_constraints[0].joint_constraints = [
+            JointConstraint(
+                joint_name=joint,
+                position=angle,
+                tolerance_below=0.0001,
+                tolerance_above=0.0001,
+                weight=1.0
+            )
+            for joint, angle in joint_configuration.items()
+        ]
+        self.saved_configurations[configuration_name] = saved_joint_constraints
 
 
-        if isinstance(path, RobotTrajectory):
-            # fill in start pose if given
-            return
-        pass
-
-    def save_plan(self, plan: MotionPlanRequest | RobotTrajectory, plan_name: str):
+    def save_plan(self, plan: MotionPlanRequest, plan_name: str):
         """
         Save a motion plan for future execution.
 
