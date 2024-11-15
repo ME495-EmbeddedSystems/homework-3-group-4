@@ -158,13 +158,16 @@ class InspectMoveit(Node):
         #Get the Pose element out of the response
         start_pos = start_pos.pose_stamped[0].pose
 
-        position = Point(x=0.4, y=4.0639413383265914e-16, z=0.6972820523028392)
-        orientation = Quaternion(x=0.9238795325112868, y=-0.38268343236508945, z=-1.4845532705112254e-16, w=-2.783989563323368e-16)
+        position = Point(x=0.5, y=0.2, z=0.6972820523028392)
+        orientation = Quaternion(x=0.0, y= 0.0, z=-0.0, w=1.0)
+
+        position2 = Point(x=0.5, y=0.1)
+        
 
         # Create the Pose object
         pose = Pose(position=position, orientation=orientation)
 
-        waypoints = [pose]
+        waypoints = [pose, Pose(position = position2 , orientation = orientation)]
 
         request.waypoints = waypoints
 
