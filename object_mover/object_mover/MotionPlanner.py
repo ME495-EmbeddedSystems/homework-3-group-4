@@ -5,11 +5,10 @@ from rclpy.node import Node
 from moveit_msgs.action import MoveGroup
 from geometry_msgs.msg import Pose
 from sensor_msgs.msg import JointState
-from moveit_msgs.msg import RobotState, Constraints, MotionPlanRequest, JointConstraint, PositionIKRequest
-from moveit_msgs.srv import GetPositionIK, GetPositionFK
+from moveit_msgs.msg import RobotState, Constraints, MotionPlanRequest, JointConstraint
 from typing import Optional, List, Dict
 from object_mover.RobotState import RobotState as CustomRobotState
-
+from object_mover.utils import populate_joint_constraints
 
 class MotionPlanner:
     """
@@ -117,7 +116,7 @@ class MotionPlanner:
             start_state_ik_solution = await CustomRobotState.compute_IK(self.robot_state,start_pose, 'fer_arm')
             path.start_state = start_state_ik_solution.solution 
 
-        if not goal_pose.position: # finish the points 2.2 and 2.3 (not start pose)
+        if not goal_pose.position: 
             # Fill out the goal_pose.position with the current position
             # To get the current position, we will need to call the compute_FK function
             fk_solution = await CustomRobotState.compute_FK(self.robot_state,['fer_link7'])
@@ -130,20 +129,10 @@ class MotionPlanner:
             goal_pose.orientation = end_effector_pose[0].pose.orientation
 
         ik_solution = await CustomRobotState.compute_IK(self.robot_state,goal_pose, path.start_state.joint_state) 
-        # Write a utility function for this
-        computed_joint_constraints = Constraints()
-    
-        for index, joint_name in enumerate(ik_solution.solution.joint_state.name):
-            position = ik_solution.solution.joint_state.position[index]
-            joint_constraint = JointConstraint()
-            joint_constraint.joint_name = joint_name
-            joint_constraint.position = position
-            joint_constraint.tolerance_above = 0.0001
-            joint_constraint.tolerance_below = 0.0001
-            joint_constraint.weight = 1.0
-            computed_joint_constraints.joint_constraints.append(joint_constraint)
 
-        path.goal_constraints = [computed_joint_constraints]
+        computed_joint_constraints = populate_joint_constraints(ik_solution)
+        path.goal_constraints = computed_joint_constraints
+        
         return path
         
 
