@@ -50,23 +50,6 @@ class UserNode(Node):
         self.plan_test = PlanningScene(self)
 
 
-        ### Plan cartesian path needed services and actions
-
-        # Calculate cartesian path service
-        self.plan_cart_path_client = self.create_client(
-            srv_name= '/compute_cartesian_path',
-            srv_type= GetCartesianPath,
-            qos_profile= 10,
-            callback_group= MutuallyExclusiveCallbackGroup()
-        )
-
-        #Client for the execuate trajectory action
-        self.execute_trajectory_client = ActionClient(
-            self,
-            action_name= '/execute_trajectory',
-            action_type= ExecuteTrajectory
-        )
-
 
     def test_planning_scene_callback(self, request, response):
         position = (1.0,1.0,1.0)
