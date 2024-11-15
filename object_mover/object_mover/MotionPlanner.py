@@ -98,7 +98,7 @@ class MotionPlanner:
             
         # Please comment on this!    
         if execute:
-            self.execute_plan(path)
+            await self.execute_plan(path)
 
         self.node.get_logger().info(f"Path: {path}")
         return path
@@ -144,8 +144,9 @@ class MotionPlanner:
         if save_plan:
             self.save_plan(path, plan_name)
 
+        #  I need opinions on this, I am not super sure of this
         if execute:
-            self.execute_plan(path)
+            await self.execute_plan(path)
         return path
         
 
