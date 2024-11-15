@@ -2,13 +2,16 @@ import rclpy
 from rclpy.action import ActionClient
 import rclpy.callback_groups
 from rclpy.node import Node
-from moveit_msgs.action import MoveGroup
-from geometry_msgs.msg import Pose
+from moveit_msgs.action import MoveGroup , ExecuteTrajectory
+from geometry_msgs.msg import Pose,Point, Quaternion
 from sensor_msgs.msg import JointState
-from moveit_msgs.msg import RobotState, Constraints, MotionPlanRequest, JointConstraint, PositionIKRequest
-from moveit_msgs.srv import GetPositionIK, GetPositionFK
+from moveit_msgs.msg import RobotState, Constraints, MotionPlanRequest, JointConstraint, PositionIKRequest , RobotTrajectory
+from moveit_msgs.srv import GetPositionIK, GetPositionFK , GetCartesianPath
 from typing import Optional, List, Dict
 from object_mover.RobotState import RobotState as CustomRobotState
+from builtin_interfaces.msg import Time
+from std_msgs.msg import Header
+
 
 
 class MotionPlanner:
@@ -27,7 +30,7 @@ class MotionPlanner:
         The action client used to communicate with the MoveIt action server.
     """
 
-    def __init__(self, node: Node, robot_state: CustomRobotState):
+    def __init__(self, node: Node, robot_state: CustomRobotState): ## Shouldnt it be UserNode????
         """Initialize the MotionPlanner class."""
         self.node = node
         self.robot_state = robot_state
@@ -147,16 +150,70 @@ class MotionPlanner:
         return path
         
 
-    async def plan_cartesian_path(self, waypoints: List[Pose]):
+    async def plan_cartesian_path(self, waypoints: List[Pose] , max_step : float = 0.1 , avoid_collisions: bool = True, path_constraints: Constraints = Constraints()):
         """
         Plan a Cartesian path from a sequence of waypoints.
 
         :param waypoints: A list of poses that define the Cartesian path.
         :type waypoints: List[geometry_msgs.msg.Pose]
+        :param max_step: The maximum step between waypoints (?) [m?]
+        :type max_step: float
+        :param avoid_collisions: Whether to avoid collisions or not.
+        :type avoid_collisions: bool
+        :param path_constraints: The path's constraints.
+        :type path_constraints: moveit_msgs.msg.Constraints
         :returns: The planned motion path request.
-        :rtype: moveit_msgs.msg.MotionPlanRequest
+        :rtype: moveit_msgs.srv.GetCartesianPath
+        """
+        request = GetCartesianPath.Request()
+
+        #Time stamp of the request
+        stamp = Time()
+
+        stamp.nanosec = self.get_clock().now().nanoseconds
+        
+        stamp.sec = int(stamp.nanosec // 1.0e9)
+
+        request.header = Header(
+            stamp = stamp,
+            frame_id = "base"
+        )
+
+        request.group_name  = "fer_arm"
+
+        #Load the waypoints
+
+        request.waypoints = waypoints
+
+        request.max_step = max_step
+
+        request.avoid_collisions = avoid_collisions
+
+        request.path_constraints = path_constraints
+
+        return request
+    
+    def execute_trajectory(self, robot_traj : RobotTrajectory):
+
+        action = ExecuteTrajectory.Goal()
+        action.trajectory = robot_traj
+        action.controller_names = ["fer_arm_controller","fer_gripper"]
+
+        self.node.execute_trajectory_client.wait_for_server()
+
+        self.node.execute_trajectory_future = self.execute_trajectory_client.send_goal_async(action)
+        self.node.execute_trajectory_future.add_done_callback(self._execute_trajectory_response_callback)
+
+        pass
+
+    def _execute_trajectory_response_callback(self,future):
+        """
+        Execute trajectory response callback function. Called after the ExecuteTrajectory action future is done.
+        :param future: The completed future object.
+        :type future: Future (?) 
         """
         pass
+        # response = future.result()
 
     async def plan_to_named_configuration(self, named_configuration: str):
         """

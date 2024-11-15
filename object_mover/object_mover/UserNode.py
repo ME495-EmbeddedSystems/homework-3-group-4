@@ -4,12 +4,16 @@ from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 from object_mover.MotionPlanner import MotionPlanner
 from object_mover.RobotState import RobotState
 from moveit_msgs.msg import MotionPlanRequest
-from rclpy.action import ActionServer
-from moveit_msgs.action import MoveGroup
+from rclpy.action import ActionServer , ActionClient
+from moveit_msgs.action import MoveGroup , ExecuteTrajectory
 import object_mover.utils as utils
 from object_mover_interfaces.srv import FrankaJointRequest, FrankaPoseRequest, TestPlanningScene
 from object_mover.PlanningScene import PlanningScene
 from std_msgs.msg import Empty
+from moveit_msgs.srv import GetCartesianPath
+
+
+
 
 def main(args=None):
     rclpy.init(args=args)
@@ -44,6 +48,24 @@ class UserNode(Node):
         self.planning_scene_detach_test = self.create_service(TestPlanningScene, 'test_planning_scene_detach_srv', self.test_planning_scene_detach_callback, callback_group=self.cbgroup)
 
         self.plan_test = PlanningScene(self)
+
+
+        ### Plan cartesian path needed services and actions
+
+        # Calculate cartesian path service
+        self.plan_cart_path_client = self.create_client(
+            srv_name= '/compute_cartesian_path',
+            srv_type= GetCartesianPath,
+            qos_profile= 10,
+            callback_group= MutuallyExclusiveCallbackGroup()
+        )
+
+        #Client for the execuate trajectory action
+        self.execute_trajectory_client = ActionClient(
+            self,
+            action_name= '/execute_trajectory',
+            action_type= ExecuteTrajectory
+        )
 
 
     def test_planning_scene_callback(self, request, response):
