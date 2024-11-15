@@ -90,6 +90,8 @@ class InspectMoveit(Node):
 
         self.timer = self.create_timer(1/self.frequency, self.timer_callback)
 
+        self.sent_traj = False
+
     async def timer_callback(self):
 
         
@@ -101,7 +103,7 @@ class InspectMoveit(Node):
             print("-"*100)
             self.resp = self.plan_cart_path_client.call_async(req)
         
-        elif (self.resp.done):
+        elif (self.resp.done and not self.sent_traj):
             pass
             print(self.resp.result())
             self.robot_traj = self.resp.result().solution
@@ -162,7 +164,7 @@ class InspectMoveit(Node):
         # Create the Pose object
         pose = Pose(position=position, orientation=orientation)
 
-        waypoints = [start_pos,pose]
+        waypoints = [pose]
 
         request.waypoints = waypoints
 
@@ -194,7 +196,8 @@ class InspectMoveit(Node):
         
         action.trajectory = self.robot_traj
         
-        action.controller_names = [""]
+        action.controller_names = ["fer_arm_controller","fer_gripper"]
+
         
         self.execute_trajectory_client.wait_for_server()
 
@@ -206,6 +209,7 @@ class InspectMoveit(Node):
         response = future.result()
         print("*"*100)
         print(response)
+        self.sent_traj = True
 
 def main(args = None):
 
