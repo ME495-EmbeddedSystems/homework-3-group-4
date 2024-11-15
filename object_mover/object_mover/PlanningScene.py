@@ -89,7 +89,6 @@ class PlanningScene:
         # self.scene = await self.get_scene.call_async(GetPlanningScene)
         # self.node.get_logger().info(f'after update: {self.scene}')
         self.scene.world.collision_objects.remove(collision_object)
-        self.scene.is_diff= True
         self.node.get_logger().info('@@@@@@@@@@@@@@@@@@@ prepare to publish attached objects!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
         self.scene_publisher.publish(self.scene)
 
