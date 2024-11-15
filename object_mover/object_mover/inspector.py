@@ -28,9 +28,10 @@ from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 from builtin_interfaces.msg import Time
 
 from sensor_msgs.msg import JointState
-from moveit_msgs.msg import RobotState as RobotStateMoveit , Constraints
+from moveit_msgs.msg import RobotState as RobotStateMoveit , Constraints ,RobotTrajectory
 
 from moveit_msgs.srv import GetPositionFK
+from moveit_msgs.action import ExecuteTrajectory
 
 from  object_mover.RobotState import RobotState
 
@@ -51,6 +52,12 @@ class InspectMoveit(Node):
             MoveGroup,
             '/move_action',
             self.server_callback
+        )
+
+        self.execute_trajectory_client = ActionClient(
+            self,
+            action_name= '/execute_trajectory',
+            action_type= ExecuteTrajectory
         )
 
         self.joint_state_sub = self.create_subscription(JointState, '/joint_states', self.joint_state_callback, 10)
@@ -77,6 +84,8 @@ class InspectMoveit(Node):
 
         self.robot_state = RobotState(self)
 
+        self.robot_traj =  RobotTrajectory()
+
         self.frequency = 0.5  # Hz
 
         self.timer = self.create_timer(1/self.frequency, self.timer_callback)
@@ -89,11 +98,14 @@ class InspectMoveit(Node):
             self.get_logger().info("Sending request....")
             req = await self.get_cartesian_path_request()
             self.get_logger().info(f'{req}')
+            print("-"*100)
             self.resp = self.plan_cart_path_client.call_async(req)
         
         elif (self.resp.done):
             pass
             print(self.resp.result())
+            self.robot_traj = self.resp.result().solution
+            self.execute_trajectory()
 
     def server_callback(self, move: ServerGoalHandle):
 
@@ -156,12 +168,13 @@ class InspectMoveit(Node):
 
         request.max_step = 0.1
 
-        request.avoid_collisions = False
+        request.avoid_collisions = True
 
         request.path_constraints = Constraints()
 
         
         return request
+    
     
     async def compute_FK(self):
 
@@ -175,6 +188,24 @@ class InspectMoveit(Node):
 
         return response.pose
 
+    def execute_trajectory(self):
+        
+        action = ExecuteTrajectory.Goal()
+        
+        action.trajectory = self.robot_traj
+        
+        action.controller_names = [""]
+        
+        self.execute_trajectory_client.wait_for_server()
+
+        self.execute_trajectory_future = self.execute_trajectory_client.send_goal_async(action)
+        self.execute_trajectory_future.add_done_callback(self.execute_trajectory_response_callback)
+
+    def execute_trajectory_response_callback(self,future):
+        
+        response = future.result()
+        print("*"*100)
+        print(response)
 
 def main(args = None):
 
