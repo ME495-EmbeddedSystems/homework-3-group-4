@@ -7,7 +7,9 @@ from moveit_msgs.msg import MotionPlanRequest
 from rclpy.action import ActionServer
 from moveit_msgs.action import MoveGroup
 import object_mover.utils as utils
-from object_mover_interfaces.srv import FrankaJointRequest, FrankaPoseRequest
+from object_mover_interfaces.srv import FrankaJointRequest, FrankaPoseRequest, TestPlanningScene
+from object_mover.PlanningScene import PlanningScene
+from std_msgs.msg import Empty
 
 def main(args=None):
     rclpy.init(args=args)
@@ -19,6 +21,7 @@ def main(args=None):
 class UserNode(Node):
     def __init__(self):
         super().__init__('user_node')
+        self.get_logger().info('User Node Init runs !!!!!!!!!!!!!!!!!!!!!!!!!!!!!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@##########################')
         self.robot_state = RobotState(self)
         self.motion_planner = MotionPlanner(self, robot_state=self.robot_state)
         self.joints = utils.robot_joints()
@@ -34,6 +37,42 @@ class UserNode(Node):
         self.serv = self.create_service(FrankaJointRequest, 'test_plan_joint_path', self.joint_path_callback, callback_group=self.cbgroup)
 
         self.pose_serv = self.create_service(FrankaPoseRequest, 'test_plan_pose_to_pose', self.pose_to_pose_callback, callback_group=self.cbgroup)
+
+        self.planning_scene_test = self.create_service(TestPlanningScene, 'test_planning_scene_srv', self.test_planning_scene_callback, callback_group=self.cbgroup)
+        self.planning_scene_remove_test = self.create_service(TestPlanningScene, 'test_planning_scene_remove_srv', self.test_planning_scene_remove_callback, callback_group=self.cbgroup)
+        self.planning_scene_attach_test = self.create_service(TestPlanningScene, 'test_planning_scene_attach_srv', self.test_planning_scene_attach_callback, callback_group=self.cbgroup)
+        self.planning_scene_detach_test = self.create_service(TestPlanningScene, 'test_planning_scene_detach_srv', self.test_planning_scene_detach_callback, callback_group=self.cbgroup)
+
+        self.plan_test = PlanningScene(self)
+
+
+    def test_planning_scene_callback(self, request, response):
+        position = (1.0,1.0,1.0)
+        dimenstion = (2.0,2.0,2.0)
+        name = 'box'
+        self.plan_test.add_collision_objects(name, position, dimenstion)
+        response.result = True
+        return response
+    
+    def test_planning_scene_remove_callback(self, request, response):
+        self.plan_test.remove_box('box')
+        response.result = True
+        return response       
+    
+    def test_planning_scene_attach_callback(self, request, response):
+        link = 'fer_rightfinger'
+        self.plan_test.attach_object(link, 'box')
+        response.result = True
+        return response               
+
+    def test_planning_scene_detach_callback(self, request, response):
+        link = 'fer_rightfinger'
+        self.plan_test.detach_object('box')
+        response.result = True
+        return response       
+    
+    
+        
 
     async def joint_path_callback(self, request: FrankaJointRequest, response):
         self.get_logger().info("Empty Service Called")
