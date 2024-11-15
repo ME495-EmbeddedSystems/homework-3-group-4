@@ -158,9 +158,20 @@ class MotionPlanner:
         :returns: The planned motion path request.
         :rtype: moveit_msgs.msg.MotionPlanRequest
         """
-        # for MotionPlanRequest
         goal_constraints = self.saved_configurations[named_configuration]
-        
+        path = MotionPlanRequest()
+        path.group_name = 'fer_arm'
+        current_state = self.get_current_robot_state()
+
+        if not start_pose:
+            path.start_state = current_state
+        else:
+            start_state_ik_solution = await CustomRobotState.compute_IK(self.robot_state, start_pose, 'fer_arm')
+            path.start_state = start_state_ik_solution.solution
+
+        path.goal_constraints = goal_constraints
+        return path
+
 
     def save_configuration(self, configuration_name: str, joint_configuration: Dict[str, float]):
         """
