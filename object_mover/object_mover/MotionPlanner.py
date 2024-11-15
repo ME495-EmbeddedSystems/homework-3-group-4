@@ -46,7 +46,6 @@ class MotionPlanner:
         :returns: True if execution is successful, False otherwise.
         :rtype: bool
         """
-        
         move_group_goal = MoveGroup.Goal()
         move_group_goal.request = plan
         move_group_goal.planning_options.plan_only = False
@@ -59,7 +58,7 @@ class MotionPlanner:
         self.node.get_logger().info(f"{result}")        
         return result.result.error_code == 0
 
-    async def plan_joint_path(self, start_joints: Optional[List[float]], goal_joints: Dict[str, float]) -> MotionPlanRequest: # noqa 501
+    async def plan_joint_path(self, start_joints: Optional[List[float]], goal_joints: Dict[str, float], execute: bool = False, save_plan: bool = False, plan_name: str = 'recent') -> MotionPlanRequest: # noqa 501
         """
         Plan a path from a valid starting joint configuration to a valid goal joint configuration.
 
@@ -94,10 +93,17 @@ class MotionPlanner:
             for joint, angle in goal_joints.items()
         ]
         
+        if save_plan:
+            self.save_plan(path, plan_name)
+            
+        # Please comment on this!    
+        if execute:
+            self.execute_plan(path)
+
         self.node.get_logger().info(f"Path: {path}")
         return path
 
-    async def plan_pose_to_pose(self, start_pose: Optional[Pose], goal_pose: Optional[Pose]):
+    async def plan_pose_to_pose(self, start_pose: Optional[Pose], goal_pose: Optional[Pose], execute: bool = False, save_plan: bool = False, plan_name: str = 'recent'):
         """
         Plan a path from a starting pose to a goal pose.
 
@@ -135,6 +141,11 @@ class MotionPlanner:
         computed_joint_constraints = populate_joint_constraints(ik_solution)
         path.goal_constraints = computed_joint_constraints
         
+        if save_plan:
+            self.save_plan(path, plan_name)
+
+        if execute:
+            self.execute_plan(path)
         return path
         
 
@@ -195,12 +206,12 @@ class MotionPlanner:
         self.saved_configurations[configuration_name] = saved_joint_constraints
 
 
-    def save_plan(self, plan: MotionPlanRequest, plan_name: str):
+    def save_plan(self, plan: MotionPlanRequest | RobotTrajectory, plan_name: str):
         """
         Save a motion plan for future execution.
 
         :param plan: The motion plan to save.
-        :type plan: moveit_msgs.msg.MotionPlanRequest/moveit_msgs.msg.RobotTrajectory
+        :type plan: moveit_msgs.msg.MotionPlanRequest | moveit_msgs.msg.RobotTrajectory
         :param plan_name: The name of the plan to be saved.
         """
         self.saved_plans[plan_name] = plan
