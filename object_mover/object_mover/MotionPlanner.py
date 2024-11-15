@@ -5,7 +5,7 @@ from rclpy.node import Node
 from moveit_msgs.action import MoveGroup
 from geometry_msgs.msg import Pose
 from sensor_msgs.msg import JointState
-from moveit_msgs.msg import RobotState, Constraints, MotionPlanRequest, JointConstraint
+from moveit_msgs.msg import RobotState, Constraints, MotionPlanRequest, JointConstraint, RobotTrajectory
 from typing import Optional, List, Dict
 from object_mover.RobotState import RobotState as CustomRobotState
 from object_mover.utils import populate_joint_constraints
@@ -30,6 +30,7 @@ class MotionPlanner:
         """Initialize the MotionPlanner class."""
         self.node = node
         self.robot_state = robot_state
+        self.saved_plans = {}
         self.node.action_client = ActionClient(self.node, MoveGroup, 'move_action', callback_group=rclpy.callback_groups.MutuallyExclusiveCallbackGroup()) 
 
         if not self.node.action_client.wait_for_server(timeout_sec=10):
@@ -113,7 +114,7 @@ class MotionPlanner:
         if not start_pose:
             path.start_state = current_state
         else:
-            start_state_ik_solution = await CustomRobotState.compute_IK(self.robot_state,start_pose, 'fer_arm')
+            start_state_ik_solution = await CustomRobotState.compute_IK(self.robot_state, start_pose, 'fer_arm')
             path.start_state = start_state_ik_solution.solution 
 
         if not goal_pose.position: 
@@ -147,34 +148,46 @@ class MotionPlanner:
         """
         pass
 
-    async def plan_to_named_configuration(self, named_configuration: str):
+    async def plan_to_named_configuration(self, start_pose: Optional[Pose],named_configuration: str):
         """
         Plan a path to a named configuration.
 
         :param named_configuration: The name of the configuration to plan to.
         :type named_configuration: str
         :returns: The planned motion path request.
-        :rtype: moveit_msgs.msg.MotionPlanRequest
+        :rtype: moveit_msgs.msg.MotionPlanRequest | moveit_msgs.msg.RobotTrajectory
         """
+        # for MotionPlanRequest
+        path = self.saved_plans[named_configuration]
+        if isinstance(path, MotionPlanRequest):
+            if start_pose:
+                start_state_ik_solution = await CustomRobotState.compute_IK(self.robot_state, start_pose, 'fer_arm')
+                path.start_state = start_state_ik_solution.solution
+
+
+        if isinstance(path, RobotTrajectory):
+            # fill in start pose if given
+            return
         pass
 
-    def save_plan(self, plan):
+    def save_plan(self, plan: MotionPlanRequest | RobotTrajectory, plan_name: str):
         """
         Save a motion plan for future execution.
 
         :param plan: The motion plan to save.
-        :type plan: moveit_msgs.msg.MotionPlanRequest
+        :type plan: moveit_msgs.msg.MotionPlanRequest/moveit_msgs.msg.RobotTrajectory
+        :param plan_name: The name of the plan to be saved.
         """
-        pass
+        self.saved_plans[plan_name] = plan
 
-    def inspect_plan(self, plan):
+    def inspect_plan(self, plan_name: str):
         """
         Inspect a previously saved motion plan.
 
-        :param plan: The motion plan to inspect.
-        :type plan: moveit_msgs.msg.MotionPlanRequest
+        :param plan_name: The name of the motion plan to inspect.
         """
-        pass
+        # Find a way to format this better
+        print(self.saved_plans[plan_name])
 
     def get_current_robot_state(self) -> RobotState:
         """
