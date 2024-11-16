@@ -47,7 +47,7 @@ def populate_gripper_constraints(gripper_configuration: str):
     Populate the MotionPlanRequest.goal_constraints for opening and closing the gripper
     """
     goal_constraints = [Constraints()]
-    if gripper_configuration == 'close':
+    if gripper_configuration == 'open':
         goal_constraints[0].joint_constraints = [
             JointConstraint(
                 joint_name='fer_finger_joint1', 
@@ -64,7 +64,7 @@ def populate_gripper_constraints(gripper_configuration: str):
                 weight=1.0
             )
         ]
-    if gripper_configuration == 'open':
+    if gripper_configuration == 'close':
         goal_constraints[0].joint_constraints = [
             JointConstraint(
                 joint_name='fer_finger_joint1', 
