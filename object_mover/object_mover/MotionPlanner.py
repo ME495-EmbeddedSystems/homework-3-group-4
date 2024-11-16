@@ -3,16 +3,15 @@ from rclpy.action import ActionClient
 import rclpy.callback_groups
 from rclpy.node import Node
 from moveit_msgs.action import MoveGroup , ExecuteTrajectory
-from geometry_msgs.msg import Pose,Point, Quaternion
+from geometry_msgs.msg import Pose
 from sensor_msgs.msg import JointState
-from moveit_msgs.msg import RobotState, Constraints, MotionPlanRequest, JointConstraint, PositionIKRequest , RobotTrajectory
-from moveit_msgs.srv import GetPositionIK, GetPositionFK , GetCartesianPath
+from moveit_msgs.msg import RobotState, Constraints, MotionPlanRequest, JointConstraint, RobotTrajectory
+from moveit_msgs.srv import GetCartesianPath
 from typing import Optional, List, Dict
 from object_mover.RobotState import RobotState as CustomRobotState
 from builtin_interfaces.msg import Time
 from std_msgs.msg import Header
 from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
-from object_mover.UserNode import UserNode
 
 
 
@@ -32,7 +31,7 @@ class MotionPlanner:
         The action client used to communicate with the MoveIt action server.
     """
 
-    def __init__(self, node: UserNode, robot_state: CustomRobotState):
+    def __init__(self, node: Node, robot_state: CustomRobotState):
         """Initialize the MotionPlanner class."""
         self.node = node
         self.robot_state = robot_state
@@ -47,13 +46,12 @@ class MotionPlanner:
         self.plan_cart_path_client = self.node.create_client(
             srv_name= '/compute_cartesian_path',
             srv_type= GetCartesianPath,
-            qos_profile= 10,
             callback_group= MutuallyExclusiveCallbackGroup()
         )
 
         #Client for the execuate trajectory action
         self.execute_trajectory_client = ActionClient(
-            self.node,
+            node= self.node,
             action_name= '/execute_trajectory',
             action_type= ExecuteTrajectory
         )
@@ -170,9 +168,9 @@ class MotionPlanner:
 
         path.goal_constraints = [computed_joint_constraints]
         return path
-        
 
-    async def get_cartesian_path_request(self, waypoints: List[Pose] , max_step : float = 0.1 , avoid_collisions: bool = True, path_constraints: Constraints = Constraints()) -> GetCartesianPath.Request:
+
+    async def _get_cartesian_path_request(self, waypoints: List[Pose] , max_step : float = 0.1 , avoid_collisions: bool = True, path_constraints: Constraints = Constraints()) -> GetCartesianPath.Request:
         """
         Gets the Cartesian path request to send to /compute_cartesian_path.
 
@@ -192,7 +190,7 @@ class MotionPlanner:
         #Time stamp of the request
         stamp = Time()
 
-        stamp.nanosec = self.get_clock().now().nanoseconds
+        stamp.nanosec = self.node.get_clock().now().nanoseconds
         
         stamp.sec = int(stamp.nanosec // 1.0e9)
 
@@ -230,18 +228,17 @@ class MotionPlanner:
         :returns: The planned motion path request.
         :rtype: moveit_msgs.srv.GetCartesianPath
         """
-        path_request = self.get_cartesian_path_request(waypoints,max_step,avoid_collisions,path_constraints)
-
-        robot_traj = RobotTrajectory()
-
-        if (path_request.done):
-
-            robot_traj = path_request.solution
+        path_request = await self._get_cartesian_path_request(waypoints,max_step,avoid_collisions,path_constraints)
+        robot_traj = await self.plan_cart_path_client.call_async(path_request).result().solution
 
         return robot_traj
     
     def execute_trajectory(self, robot_traj : RobotTrajectory):
-
+        """
+        Execute a trajectory using the ExecuteTrajectory action.
+        :param robot_traj: The robot trajectory to execute. The output from the plan_cartesian_path function.
+        :type robot_traj: moveit_msgs.msg.RobotTrajectory
+        """
         action = ExecuteTrajectory.Goal()
         action.trajectory = robot_traj
         action.controller_names = ["fer_arm_controller","fer_gripper"]
