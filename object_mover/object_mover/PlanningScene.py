@@ -9,6 +9,9 @@ from shape_msgs.msg import SolidPrimitive
 
 class PlanningScene:
     def __init__(self, node: rclpy.node):
+        """
+        initialize the PlanningScene class
+        """
         self.node = node
         self.get_scene = self.node.create_client(GetPlanningScene, '/get_planning_scene')
         while not self.get_scene.wait_for_service(timeout_sec=1.0):
@@ -23,10 +26,14 @@ class PlanningScene:
     async def add_collision_objects(self, name, position, dimension):
         """
         add the collision object to the environment
-
-        Args:
-            the name of the added box, position (tuple), and dimension (tuple)
-        
+        :param name: the name of the object
+        :type name: str
+        :param position:the position of the object
+        :type position:tuple
+        :dimension:the dimension of the object
+        :type dimension:tuple
+        :return: the response of the service call
+        :rtype: ApplyPlanningScene.Response
         """
         self.scene_response  = await self.get_scene.call_async(GetPlanningScene.Request())        
         collision_object = CollisionObject()
@@ -35,13 +42,13 @@ class PlanningScene:
 
         self.objects[name] = collision_object
         box_pose = Pose()
-        box_pose.position.x = position[0]
-        box_pose.position.y = position[1]
-        box_pose.position.z = position[2]
+        box_pose.position.x = position.position.x
+        box_pose.position.y = position.position.y
+        box_pose.position.z = position.position.z
 
         box = SolidPrimitive()
         box.type = SolidPrimitive.BOX
-        box.dimensions = dimension
+        box.dimensions = dimension.data
         collision_object.id = name
         collision_object.primitives.append(box)
         collision_object.primitive_poses.append(box_pose)
@@ -53,10 +60,10 @@ class PlanningScene:
     async def remove_box(self, name):
         """
         remove the box in the environment
-        
-        Args:
-            the box name 
-
+        :param name: the name of the object
+        :type name: str
+        :return: the response of the service call
+        :rtype: ApplyPlanningScene.Response
         """
         self.scene_response  = await self.get_scene.call_async(GetPlanningScene.Request())      
         try:
@@ -80,12 +87,13 @@ class PlanningScene:
         response = await self.apply_scene.call_async(ApplyPlanningScene.Request(scene=self.scene_response.scene))
         return response
     
-    async def attach_object(self, linkname, name):
+    async def attach_object(self, name):
         """
-        attach the box to the end-effector 
-        Args:
-            The linkname that the box attached to, box name
-
+        attach the box to the end-effector of the robot
+        :param name: the name of the object
+        :type name: str
+        :return: the response of the service call
+        :rtype: ApplyPlanningScene.Response
         """
         self.scene_response  = await self.get_scene.call_async(GetPlanningScene.Request())        
         if name in self.objects:
@@ -97,7 +105,7 @@ class PlanningScene:
         del self.objects[name]
         attach_object = AttachedCollisionObject()
         attach_object.object = collision_object
-        attach_object.link_name = linkname
+        attach_object.link_name = 'fer_link7'
         self.scene_response.scene.robot_state.attached_collision_objects.append(attach_object)
         response = await self.apply_scene.call_async(ApplyPlanningScene.Request(scene=self.scene_response.scene))
         return response
@@ -105,8 +113,10 @@ class PlanningScene:
     async def detach_object(self, name):
         """
         detach the box from the robot and add reintroduce the object into the environment
-        Args:
-            the box name 
+        :param name: the name of the object
+        :type name: str
+        :return: the response of the service call
+        :rtype: ApplyPlanningScene.Response
         """
         self.scene_response  = await self.get_scene.call_async(GetPlanningScene.Request())
         try:        
@@ -123,6 +133,8 @@ class PlanningScene:
     async def clear_scene(self):
         """
         clear the scene
+        :return: the response of the service call
+        :rtype: ApplyPlanningScene.Response
         """
         self.scene_response  = await self.get_scene.call_async(GetPlanningScene.Request())     
         self.scene_response.scene.world.collision_objects.clear()

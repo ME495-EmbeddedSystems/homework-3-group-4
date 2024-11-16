@@ -7,12 +7,10 @@ from moveit_msgs.msg import MotionPlanRequest
 from rclpy.action import ActionServer , ActionClient
 from moveit_msgs.action import MoveGroup , ExecuteTrajectory
 import object_mover.utils as utils
-from object_mover_interfaces.srv import FrankaJointRequest, FrankaPoseRequest, TestPlanningScene, CartesianPathRequest, GripperRequest
+from object_mover_interfaces.srv import FrankaJointRequest, FrankaPoseRequest, AddBox, BoxName, CartesianPathRequest, GripperRequest
 from object_mover.PlanningScene import PlanningScene
-from std_msgs.msg import Empty
+from std_srvs.srv import Empty
 from moveit_msgs.srv import GetCartesianPath
-
-
 
 
 def main(args=None):
@@ -41,39 +39,34 @@ class UserNode(Node):
         self.serv = self.create_service(FrankaJointRequest, 'test_plan_joint_path', self.joint_path_callback, callback_group=self.cbgroup)
         self.pose_serv = self.create_service(FrankaPoseRequest, 'test_plan_pose_to_pose', self.pose_to_pose_callback, callback_group=self.cbgroup)
 
-        self.planning_scene_add_test = self.create_service(TestPlanningScene, 'test_planning_scene_add_srv', self.test_planning_scene_add_callback, callback_group=self.cbgroup)
-        self.planning_scene_remove_test = self.create_service(TestPlanningScene, 'test_planning_scene_remove_srv', self.test_planning_scene_remove_callback, callback_group=self.cbgroup)
-        self.planning_scene_attach_test = self.create_service(TestPlanningScene, 'test_planning_scene_attach_srv', self.test_planning_scene_attach_callback, callback_group=self.cbgroup)
-        self.planning_scene_detach_test = self.create_service(TestPlanningScene, 'test_planning_scene_detach_srv', self.test_planning_scene_detach_callback, callback_group=self.cbgroup)
-        self.planning_scene_clear_test = self.create_service(TestPlanningScene, 'test_planning_scene_clear_srv', self.test_planning_scene_clear_callback, callback_group=self.cbgroup)
+        self.planning_scene_add_test = self.create_service(AddBox, 'test_planning_scene_add_srv', self.test_planning_scene_add_callback, callback_group=self.cbgroup)
+        self.planning_scene_remove_test = self.create_service(BoxName, 'test_planning_scene_remove_srv', self.test_planning_scene_remove_callback, callback_group=self.cbgroup)
+        self.planning_scene_attach_test = self.create_service(BoxName, 'test_planning_scene_attach_srv', self.test_planning_scene_attach_callback, callback_group=self.cbgroup)
+        self.planning_scene_detach_test = self.create_service(BoxName, 'test_planning_scene_detach_srv', self.test_planning_scene_detach_callback, callback_group=self.cbgroup)
+        self.planning_scene_clear_test = self.create_service(Empty, 'test_planning_scene_clear_srv', self.test_planning_scene_clear_callback, callback_group=self.cbgroup)
         self.plan_test = PlanningScene(self)
     
     async def test_planning_scene_clear_callback(self, request, response):
         await self.plan_test.clear_scene()
-        response.result = True
         return response
 
     async def test_planning_scene_add_callback(self, request, response):
-        position = (0.5,0.5,1.0)
-        dimenstion = (0.2,0.2,0.2)
-        name = 'box'
-        await self.plan_test.add_collision_objects(name, position, dimenstion)
+        await self.plan_test.add_collision_objects(request.name, request.position, request.dimension)
         response.result = True
         return response
     
     async def test_planning_scene_remove_callback(self, request, response):
-        await self.plan_test.remove_box('box')
+        await self.plan_test.remove_box(request.name)
         response.result = True
         return response       
     
     async def test_planning_scene_attach_callback(self, request, response):
-        link = 'fer_link7'
-        await self.plan_test.attach_object(link, 'box')
+        await self.plan_test.attach_object(request.name)
         response.result = True
         return response               
 
     async def test_planning_scene_detach_callback(self, request, response):
-        await self.plan_test.detach_object('box')
+        await self.plan_test.detach_object(request.name)
         response.result = True
         return response       
         
