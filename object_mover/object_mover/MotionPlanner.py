@@ -94,6 +94,7 @@ class MotionPlanner:
         :rtype: moveit_msgs.msg.MotionPlanRequest
         """
         path = MotionPlanRequest()
+        path.max_velocity_scaling_factor = 0.5
         path.start_state.joint_state = JointState()
 
         if start_joints:
@@ -105,7 +106,7 @@ class MotionPlanner:
             path.start_state.joint_state.position = current_state.joint_state.position
 
         path.goal_constraints = [Constraints()]
-        path.group_name = 'fer_arm'
+        path.group_name = 'fer_manipulator'
         path.goal_constraints[0].joint_constraints = [
             JointConstraint(
                 joint_name=joint,
@@ -138,24 +139,25 @@ class MotionPlanner:
         :rtype: moveit_msgs.msg.MotionPlanRequest
         """
         path = MotionPlanRequest()
-        path.group_name = 'fer_arm'
+        path.max_velocity_scaling_factor = 0.5
+        path.group_name = 'fer_manipulator'
         current_state = self.get_current_robot_state()
 
         if not start_pose:
             path.start_state = current_state
         else:
-            start_state_ik_solution = await CustomRobotState.compute_IK(self.robot_state, start_pose, 'fer_arm')
+            start_state_ik_solution = await CustomRobotState.compute_IK(self.robot_state, start_pose, 'fer_manipulator')
             path.start_state = start_state_ik_solution.solution 
 
         if not goal_pose.position: 
             # Fill out the goal_pose.position with the current position
             # To get the current position, we will need to call the compute_FK function
-            fk_solution = await CustomRobotState.compute_FK(self.robot_state,['fer_link7'])
+            fk_solution = await CustomRobotState.compute_FK(self.robot_state,['fer_link8'])
             end_effector_pose = fk_solution[0]
             goal_pose.position = end_effector_pose[0].pose.position
 
         if not goal_pose.orientation:
-            fk_solution = await CustomRobotState.compute_FK(self.robot_state,['fer_link7'])
+            fk_solution = await CustomRobotState.compute_FK(self.robot_state,['fer_link8'])
             end_effector_pose = fk_solution[0]
             goal_pose.orientation = end_effector_pose[0].pose.orientation
 
@@ -291,13 +293,13 @@ class MotionPlanner:
         """
         goal_constraints = self.saved_configurations[named_configuration]
         path = MotionPlanRequest()
-        path.group_name = 'fer_arm'
+        path.group_name = 'fer_manipulator'
         current_state = self.get_current_robot_state()
 
         if not start_pose:
             path.start_state = current_state
         else:
-            start_state_ik_solution = await CustomRobotState.compute_IK(self.robot_state, start_pose, 'fer_arm')
+            start_state_ik_solution = await CustomRobotState.compute_IK(self.robot_state, start_pose, 'fer_manipulator')
             path.start_state = start_state_ik_solution.solution
 
         path.goal_constraints = goal_constraints

@@ -19,7 +19,7 @@ class RobotState:
     async def compute_IK(self,  
                         goal_pose: PoseStamped, 
                         joint_state: JointState = None, 
-                        group_name: str = 'fer_arm'):
+                        group_name: str = 'fer_manipulator'):
         if joint_state is None:
             joint_state = self.joint_state
         request = GetPositionIK.Request()
