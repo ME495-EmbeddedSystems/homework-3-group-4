@@ -41,7 +41,6 @@ class MotionPlanningInterface:
         to plan path.
         :param start_joints: 
         '''
-        self.node.get_logger().info(f'Planning path: {start_joints}, {goal_joints}, {start_pose}, {goal_pose}, {waypoints}')
         if goal_joints is not None:
             self.path = await self.motion_planner.plan_joint_path(goal_joints)
         elif goal_pose is not None:

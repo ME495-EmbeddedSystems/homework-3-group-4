@@ -73,13 +73,13 @@ class MotionPlanner:
         move_group_goal = MoveGroup.Goal()
         move_group_goal.request = plan
         move_group_goal.planning_options.plan_only = False
+
         goal_handle = await self.move_action_client.send_goal_async(move_group_goal)
         if not goal_handle.accepted:
             return False
 
         # print type of goal_handle
         result = await goal_handle.get_result_async()
-        self.node.get_logger().info(f"{result}")        
         return result.result.error_code == 0
 
     async def plan_joint_path(self, start_joints: Optional[List[float]], goal_joints: Dict[str, float], execute: bool = False, save_plan: bool = False, plan_name: str = 'recent') -> MotionPlanRequest: # noqa 501
@@ -123,7 +123,6 @@ class MotionPlanner:
         if execute:
             self.execute_plan(path)
 
-        self.node.get_logger().info(f"Path: {path}")
         return path
 
     async def plan_pose_to_pose(self, start_pose: Optional[Pose], goal_pose: Optional[Pose], execute: bool = False, save_plan: bool = False, plan_name: str = 'recent'):
@@ -141,8 +140,6 @@ class MotionPlanner:
         path.group_name = 'fer_arm'
         current_state = self.get_current_robot_state()
 
-        self.node.get_logger().info(f"Start pose: {start_pose}")
-        self.node.get_logger().info(f"Goal pose: {goal_pose}")
         if not start_pose:
             path.start_state = current_state
         else:
@@ -153,13 +150,11 @@ class MotionPlanner:
             # Fill out the goal_pose.position with the current position
             # To get the current position, we will need to call the compute_FK function
             fk_solution = await CustomRobotState.compute_FK(self.robot_state,['fer_link7'])
-            self.node.get_logger().info(f"{type(fk_solution)}")
             end_effector_pose = fk_solution.pose_stamped
             goal_pose.position = end_effector_pose[0].pose.position
 
         if not goal_pose.orientation:
             fk_solution = await CustomRobotState.compute_FK(self.robot_state,['fer_link7'])
-            self.node.get_logger().info(f"{type(fk_solution)}")
             end_effector_pose = fk_solution.pose_stamped
             goal_pose.orientation = end_effector_pose[0].pose.orientation
 
@@ -236,11 +231,8 @@ class MotionPlanner:
         :rtype: moveit_msgs.srv.GetCartesianPath
         """
         path_request = self._get_cartesian_path_request(waypoints,max_step,avoid_collisions,path_constraints)
-        # self.node.get_logger().info(f"{path_request}")
         robot_traj = await self.plan_cart_path_client.call_async(path_request)
         robot_traj = robot_traj.solution
-        self.node.get_logger().info(f"{type(robot_traj)}")
-        
         return robot_traj
     
     def execute_trajectory(self, robot_traj : RobotTrajectory):

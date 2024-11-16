@@ -1,3 +1,4 @@
+import time
 import rclpy
 from rclpy.node import Node
 from std_msgs.msg import Empty
@@ -8,19 +9,14 @@ from enum import Enum, auto
 from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 from rclpy.action import ActionServer
 from moveit_msgs.action import MoveGroup
+import copy
 
 class State(Enum):
     '''
     Current state of the system (might not be needed)
     '''
-    STATE1 = auto()
-    STATE2 = auto()
-    STATE3 = auto()
-    STATE4 = auto()
-    STATE5 = auto()
-    STATE6 = auto()
-    STATE7 = auto()
-    STATE8 = auto()
+    MOVING = auto()
+    STATIONARY = auto()
 
 
 class PickNode(Node):
@@ -33,7 +29,7 @@ class PickNode(Node):
                                     '/viz/move_action',
                                     self.move_action_callback,
                                     callback_group = self._cbgroup)
-
+        self.state = State.STATIONARY
         self.mpi = MotionPlanningInterface(self)
 
     # Maybe need to create custom service type for pick service as we want to be able to load multiple things to it
@@ -41,19 +37,14 @@ class PickNode(Node):
         # For now I am assuming we are locating pose of object as the input to pick service 
         object_pose = Pose()
         object_pose = request.pick_point
-        # Moving arm to right above object
-        pose1 = object_pose
-        #pose1.position.z = object_pose.position.z + 0.0 #arbitrary number as it has to move above it
-        plan = await self.mpi.plan_path(goal_pose = pose1) 
-        self.get_logger().info(f"Plan: {plan}")
-        await self.mpi.exec_path(path = plan)
-        # log plan
-        # Opening grippers 
+        pose1 = copy.deepcopy(object_pose)
 
-        # Moving arm so object is in between grippers
-        # pose2 = object_pose
-        # plan = await self.mpi.plan_path(goal_pose = pose2)
-        # await self.mpi.exec_path(path = plan)
+        pose1.position.z = object_pose.position.z + 0.4
+        plan = await self.mpi.plan_path(goal_pose = pose1) 
+        await self.mpi.exec_path(path = plan)
+        pose2 = object_pose
+        plan = await self.mpi.plan_path(goal_pose = pose2)
+        await self.mpi.exec_path(path = plan)
         # Closing grippers
 
         # Lifts object slighty off table
