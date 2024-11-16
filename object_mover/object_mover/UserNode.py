@@ -42,11 +42,22 @@ class UserNode(Node):
         self.planning_scene_remove_test = self.create_service(TestPlanningScene, 'test_planning_scene_remove_srv', self.test_planning_scene_remove_callback, callback_group=self.cbgroup)
         self.planning_scene_attach_test = self.create_service(TestPlanningScene, 'test_planning_scene_attach_srv', self.test_planning_scene_attach_callback, callback_group=self.cbgroup)
         self.planning_scene_detach_test = self.create_service(TestPlanningScene, 'test_planning_scene_detach_srv', self.test_planning_scene_detach_callback, callback_group=self.cbgroup)
-
+        self.planning_scene_clear_test = self.create_service(TestPlanningScene, 'test_planning_scene_clear_srv', self.test_planning_scene_clear_callback, callback_group=self.cbgroup)
+        self.planning_scene_get_scene = self.create_service(TestPlanningScene, 'test_planning_get_scene_srv', self.test_planning_get_scene_callback, callback_group=self.cbgroup)
         self.plan_test = PlanningScene(self)
 
+    async def test_planning_get_scene_callback(self, request, response):
+        await self.plan_test.get_scene()
+        response.result = True
+        return response
+    
+    async def test_planning_scene_clear_callback(self, request, response):
+        await self.plan_test.clear_scene()
+        response.result = True
+        return response
+
     async def test_planning_scene_callback(self, request, response):
-        position = (1.0,1.0,1.0)
+        position = (0.5,0.5,1.0)
         dimenstion = (0.2,0.2,0.2)
         name = 'box'
         await self.plan_test.add_collision_objects(name, position, dimenstion)
@@ -58,15 +69,14 @@ class UserNode(Node):
         response.result = True
         return response       
     
-    def test_planning_scene_attach_callback(self, request, response):
-        link = 'fer_rightfinger'
-        self.plan_test.attach_object(link, 'box')
+    async def test_planning_scene_attach_callback(self, request, response):
+        link = 'fer_link7'
+        await self.plan_test.attach_object(link, 'box')
         response.result = True
         return response               
 
-    def test_planning_scene_detach_callback(self, request, response):
-        link = 'fer_rightfinger'
-        self.plan_test.detach_object('box')
+    async def test_planning_scene_detach_callback(self, request, response):
+        await self.plan_test.detach_object('box')
         response.result = True
         return response       
     
