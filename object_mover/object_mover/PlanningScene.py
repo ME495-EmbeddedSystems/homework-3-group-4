@@ -12,7 +12,7 @@ class PlanningScene:
         self.node = node
         self.get_scene = self.node.create_client(GetPlanningScene, '/get_planning_scene')
         while not self.get_scene.wait_for_service(timeout_sec=1.0):
-            self.get_logger().info('get_scene service not available, waiting again...')
+            self.node.get_logger().info('get_scene service not available, waiting again...')
  
         self.objects = {}  # Dictionary to store objects with their properties (location, size)
         self.attach_object_dict = {} 

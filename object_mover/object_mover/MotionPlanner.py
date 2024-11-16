@@ -6,7 +6,7 @@ from moveit_msgs.action import MoveGroup , ExecuteTrajectory
 from geometry_msgs.msg import Pose
 from sensor_msgs.msg import JointState
 from moveit_msgs.msg import RobotState, Constraints, MotionPlanRequest, JointConstraint, RobotTrajectory
-from moveit_msgs.srv import GetCartesianPath
+from moveit_msgs.srv import GetCartesianPath, GetPositionFK
 from typing import Optional, List, Dict
 from builtin_interfaces.msg import Time
 from std_msgs.msg import Header
@@ -141,6 +141,8 @@ class MotionPlanner:
         path.group_name = 'fer_arm'
         current_state = self.get_current_robot_state()
 
+        self.node.get_logger().info(f"Start pose: {start_pose}")
+        self.node.get_logger().info(f"Goal pose: {goal_pose}")
         if not start_pose:
             path.start_state = current_state
         else:
@@ -151,12 +153,14 @@ class MotionPlanner:
             # Fill out the goal_pose.position with the current position
             # To get the current position, we will need to call the compute_FK function
             fk_solution = await CustomRobotState.compute_FK(self.robot_state,['fer_link7'])
-            end_effector_pose = fk_solution[0]
+            self.node.get_logger().info(f"{type(fk_solution)}")
+            end_effector_pose = fk_solution.pose_stamped
             goal_pose.position = end_effector_pose[0].pose.position
 
         if not goal_pose.orientation:
             fk_solution = await CustomRobotState.compute_FK(self.robot_state,['fer_link7'])
-            end_effector_pose = fk_solution[0]
+            self.node.get_logger().info(f"{type(fk_solution)}")
+            end_effector_pose = fk_solution.pose_stamped
             goal_pose.orientation = end_effector_pose[0].pose.orientation
 
         ik_solution = await CustomRobotState.compute_IK(self.robot_state,goal_pose, path.start_state.joint_state) 

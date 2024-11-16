@@ -6,8 +6,8 @@ from geometry_msgs.msg import PoseStamped
 from typing import List
 
 class RobotState:
-    def __init__(self, ros_node: Node):
-        self.node = ros_node
+    def __init__(self, node: Node):
+        self.node = node
         self.joint_state_sub = self.node.create_subscription(JointState, '/joint_states', self.joint_state_callback, 10)
         self.fk_client = self.node.create_client(GetPositionFK, '/compute_fk')
         self.ik_client = self.node.create_client(GetPositionIK, '/compute_ik')
