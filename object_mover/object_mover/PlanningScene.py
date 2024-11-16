@@ -1,5 +1,5 @@
 import rclpy
-from moveit_msgs.srv import GetPlanningScene
+from moveit_msgs.srv import GetPlanningScene, ApplyPlanningScene
 from moveit_msgs.msg import PlanningScene as MoveitPlanningScene
 from moveit_msgs.msg import CollisionObject, AttachedCollisionObject
 from geometry_msgs.msg import Pose
@@ -13,12 +13,13 @@ class PlanningScene:
         self.get_scene = self.node.create_client(GetPlanningScene, '/get_planning_scene')
         while not self.get_scene.wait_for_service(timeout_sec=1.0):
             self.get_logger().info('get_scene service not available, waiting again...')
- 
-        self.objects = {}  # Dictionary to store objects with their properties (location, size)
-        self.attach_object_dict = {} 
-        self.scene_publisher = self.node.create_publisher(MoveitPlanningScene, '/planning_scene', 10)
 
-    # Method to add a box to the scene at a specified location and size
+        self.apply_scene = self.node.create_client(ApplyPlanningScene, '/apply_planning_scene')
+        while not self.apply_scene.wait_for_service(timeout_sec=1.0):
+            self.get_logger().info('apply_scene service not available, waiting again...')
+ 
+        self.objects = {}  
+        self.attach_objects = {}
     async def add_collision_objects(self, name, position, dimension):
         """
         add the collision object to the environment
@@ -46,10 +47,10 @@ class PlanningScene:
         collision_object.primitive_poses.append(box_pose)
         collision_object.operation = CollisionObject.ADD
         self.scene_response.scene.world.collision_objects.append(collision_object)
-        self.scene_publisher.publish(self.scene_response.scene)
+        response = await self.apply_scene.call_async(ApplyPlanningScene.Request(scene=self.scene_response.scene))
+        return response
 
     async def remove_box(self, name):
-        ## check the operation later, no I really need to add operation.remove?
         """
         remove the box in the environment
         
@@ -57,21 +58,28 @@ class PlanningScene:
             the box name 
 
         """
-        self.scene_response  = await self.get_scene.call_async(GetPlanningScene.Request())        
-        collision_object = self.objects[name]
-        del self.objects[name]
-        collision_object.operation = CollisionObject.REMOVE
-        self.scene_response.scene.world.collision_objects.remove(collision_object)
-        self.scene_publisher.publish(self.scene_response.scene)
+        self.scene_response  = await self.get_scene.call_async(GetPlanningScene.Request())      
+        try:
+            for object in self.scene_response.scene.world.collision_objects:
+                if object.id == name:
+                    collision_object = object
+            self.scene_response.scene.world.collision_objects.remove(collision_object)
 
+        except:
+            self.node.get_logger().info('------------------The object is not in the collision objects------------------')
 
-    #Method to attach a collision object to the robot's end-effector
-    #Attaching an object requires two operations
+        try:
+            for object_attached in self.scene_response.scene.robot_state.attached_collision_objects:
+                if object_attached.object.id == name:
+                    object_remove = object_attached
+            self.scene_response.scene.robot_state.attached_collision_objects.remove(object_remove)
 
-    # 1.Removing the original object from the environment   
+        except:
+            self.node.get_logger().info('------------------The object is not in the attached collision objects------------------')
 
-    # 2.Attaching the object to the robot
-
+        response = await self.apply_scene.call_async(ApplyPlanningScene.Request(scene=self.scene_response.scene))
+        return response
+    
     async def attach_object(self, linkname, name):
         """
         attach the box to the end-effector 
@@ -82,55 +90,43 @@ class PlanningScene:
         self.scene_response  = await self.get_scene.call_async(GetPlanningScene.Request())        
         if name in self.objects:
             collision_object = self.objects[name]
-            # self.remove_box(name)
+        for object in self.scene_response.scene.world.collision_objects:
+            if object.id == name:
+                self.scene_response.scene.world.collision_objects.remove(object)
+                self.attach_objects[name] = object
+        del self.objects[name]
         attach_object = AttachedCollisionObject()
         attach_object.object = collision_object
         attach_object.link_name = linkname
-        self.attach_object_dict[name] = attach_object
         self.scene_response.scene.robot_state.attached_collision_objects.append(attach_object)
-        self.scene_publisher.publish(self.scene_response.scene)
-        #self.node.get_logger().info(f'after attach@@@@@@@@@@@@@@@@@@@@@@@: {self.scene_response.scene}')
-
-
-
-    #Method to detach an object from the robot's end-effector
-    #Detaching an object from the robot requires two operations
-
-    # 1. Detaching the object from the robot
-
-    # 2. Re-introducing the object into the environment
-
-
+        response = await self.apply_scene.call_async(ApplyPlanningScene.Request(scene=self.scene_response.scene))
+        return response
+    
     async def detach_object(self, name):
         """
         detach the box from the robot and add reintroduce the object into the environment
         Args:
             the box name 
         """
-        self.scene_response  = await self.get_scene.call_async(GetPlanningScene.Request())        
-        #self.node.get_logger().info(f'before detach@@@@@@@@@@@@@@@@: {self.scene_response.scene}')
-        if name in self.attach_object_dict:
-            detach_object = self.attach_object_dict[name]
-            self.objects[name] = self.attach_object_dict[name].object
-            del self.attach_object_dict[name]
+        self.scene_response  = await self.get_scene.call_async(GetPlanningScene.Request())
+        try:        
+            for object in self.scene_response.scene.robot_state.attached_collision_objects:
+                if object.object.id == name:
+                    detach_object = object
+            self.scene_response.scene.world.collision_objects.append(detach_object.object)
+        except:
+            self.node.get_logger().info('-------------The object is not found in the attached objects------------------')
         self.scene_response.scene.robot_state.attached_collision_objects.remove(detach_object)
-        self.scene_publisher.publish(self.scene_response.scene)
-        #self.node.get_logger().info(f'after detach@@@@@@@@@@@@@@@@@@: {self.scene_response.scene}')
-
+        response = await self.apply_scene.call_async(ApplyPlanningScene.Request(scene=self.scene_response.scene))
+        return response
+    
     async def clear_scene(self):
         """
         clear the scene
         """
         self.scene_response  = await self.get_scene.call_async(GetPlanningScene.Request())     
-        self.node.get_logger().info(f'before clear@@@@@@@@@@@@@@@@@@: {self.scene_response.scene}')   
         self.scene_response.scene.world.collision_objects.clear()
         self.scene_response.scene.robot_state.attached_collision_objects.clear()
-        self.scene_publisher.publish(self.scene_response.scene)
-        self.node.get_logger().info(f'after clear@@@@@@@@@@@@@@@@@@: {self.scene_response.scene}')
-
-    async def get_scene(self):
-        """
-        get the scene
-        """
-        self.scene_response  = await self.get_scene.call_async(GetPlanningScene.Request())   
-        self.node.get_logger().info(f'get scene@@@@@@@@@@@@@@@@@@: {self.scene_response.scene}')
+        response = await self.apply_scene.call_async(ApplyPlanningScene.Request(scene=self.scene_response.scene))
+        return response
+    
