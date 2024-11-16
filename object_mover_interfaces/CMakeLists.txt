@@ -19,6 +19,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "srv/TestPlanningScene.srv"
   "srv/PickPose.srv"
   "srv/CartesianPathRequest.srv"
+  "srv/GripperRequest.srv"
   DEPENDENCIES geometry_msgs
   )
 
