@@ -23,6 +23,7 @@ setup(
     entry_points={
         'console_scripts': [
             'user_node = object_mover.UserNode:main',
+            'pick_node = object_mover.pick_node:pick_entry'
         ],
     },
 )

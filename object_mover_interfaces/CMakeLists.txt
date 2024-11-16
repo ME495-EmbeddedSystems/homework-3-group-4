@@ -17,6 +17,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "srv/FrankaJointRequest.srv"
   "srv/FrankaPoseRequest.srv"
   "srv/TestPlanningScene.srv"
+  "srv/PickPose.srv"
   DEPENDENCIES geometry_msgs
   )
 

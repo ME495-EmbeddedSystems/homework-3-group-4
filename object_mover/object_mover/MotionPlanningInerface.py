@@ -30,7 +30,7 @@ class MotionPlanningInterface:
         async def plan_path(
                 self,
                 start_joints: Optional[List[float]] = None, 
-                goal_joints: Dict[str, float] = None,
+                goal_joints: Optional [Dict[str, float]] = None,
                 start_pose: Optional[Pose] = None, 
                 goal_pose: Optional[Pose] = None,
                 waypoints: List[Pose] = None,
