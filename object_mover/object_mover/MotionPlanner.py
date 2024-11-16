@@ -5,11 +5,10 @@ from rclpy.node import Node
 from moveit_msgs.action import MoveGroup
 from geometry_msgs.msg import Pose
 from sensor_msgs.msg import JointState
-from moveit_msgs.msg import RobotState, Constraints, MotionPlanRequest, JointConstraint, PositionIKRequest
-from moveit_msgs.srv import GetPositionIK, GetPositionFK
+from moveit_msgs.msg import RobotState, Constraints, MotionPlanRequest, JointConstraint, RobotTrajectory
 from typing import Optional, List, Dict
 from object_mover.RobotState import RobotState as CustomRobotState
-
+from object_mover.utils import populate_joint_constraints
 
 class MotionPlanner:
     """
@@ -31,6 +30,8 @@ class MotionPlanner:
         """Initialize the MotionPlanner class."""
         self.node = node
         self.robot_state = robot_state
+        self.saved_plans = {}
+        self.saved_configurations = {}
         self.node.action_client = ActionClient(self.node, MoveGroup, 'move_action', callback_group=rclpy.callback_groups.MutuallyExclusiveCallbackGroup()) 
 
         if not self.node.action_client.wait_for_server(timeout_sec=10):
@@ -45,7 +46,6 @@ class MotionPlanner:
         :returns: True if execution is successful, False otherwise.
         :rtype: bool
         """
-        
         move_group_goal = MoveGroup.Goal()
         move_group_goal.request = plan
         move_group_goal.planning_options.plan_only = False
@@ -58,7 +58,7 @@ class MotionPlanner:
         self.node.get_logger().info(f"{result}")        
         return result.result.error_code == 0
 
-    async def plan_joint_path(self, start_joints: Optional[List[float]], goal_joints: Dict[str, float]) -> MotionPlanRequest: # noqa 501
+    async def plan_joint_path(self, start_joints: Optional[List[float]], goal_joints: Dict[str, float], execute: bool = False, save_plan: bool = False, plan_name: str = 'recent') -> MotionPlanRequest: # noqa 501
         """
         Plan a path from a valid starting joint configuration to a valid goal joint configuration.
 
@@ -93,10 +93,16 @@ class MotionPlanner:
             for joint, angle in goal_joints.items()
         ]
         
+        if save_plan:
+            self.save_plan(path, plan_name)
+  
+        if execute:
+            self.execute_plan(path)
+
         self.node.get_logger().info(f"Path: {path}")
         return path
 
-    async def plan_pose_to_pose(self, start_pose: Optional[Pose], goal_pose: Optional[Pose]):
+    async def plan_pose_to_pose(self, start_pose: Optional[Pose], goal_pose: Optional[Pose], execute: bool = False, save_plan: bool = False, plan_name: str = 'recent'):
         """
         Plan a path from a starting pose to a goal pose.
 
@@ -114,10 +120,10 @@ class MotionPlanner:
         if not start_pose:
             path.start_state = current_state
         else:
-            start_state_ik_solution = await CustomRobotState.compute_IK(self.robot_state,start_pose, 'fer_arm')
+            start_state_ik_solution = await CustomRobotState.compute_IK(self.robot_state, start_pose, 'fer_arm')
             path.start_state = start_state_ik_solution.solution 
 
-        if not goal_pose.position: # finish the points 2.2 and 2.3 (not start pose)
+        if not goal_pose.position: 
             # Fill out the goal_pose.position with the current position
             # To get the current position, we will need to call the compute_FK function
             fk_solution = await CustomRobotState.compute_FK(self.robot_state,['fer_link7'])
@@ -130,20 +136,15 @@ class MotionPlanner:
             goal_pose.orientation = end_effector_pose[0].pose.orientation
 
         ik_solution = await CustomRobotState.compute_IK(self.robot_state,goal_pose, path.start_state.joint_state) 
-        # Write a utility function for this
-        computed_joint_constraints = Constraints()
-    
-        for index, joint_name in enumerate(ik_solution.solution.joint_state.name):
-            position = ik_solution.solution.joint_state.position[index]
-            joint_constraint = JointConstraint()
-            joint_constraint.joint_name = joint_name
-            joint_constraint.position = position
-            joint_constraint.tolerance_above = 0.0001
-            joint_constraint.tolerance_below = 0.0001
-            joint_constraint.weight = 1.0
-            computed_joint_constraints.joint_constraints.append(joint_constraint)
 
-        path.goal_constraints = [computed_joint_constraints]
+        computed_joint_constraints = populate_joint_constraints(ik_solution)
+        path.goal_constraints = computed_joint_constraints
+        
+        if save_plan:
+            self.save_plan(path, plan_name)
+            
+        if execute:
+            self.execute_plan(path)
         return path
         
 
@@ -158,7 +159,7 @@ class MotionPlanner:
         """
         pass
 
-    async def plan_to_named_configuration(self, named_configuration: str):
+    async def plan_to_named_configuration(self, start_pose: Optional[Pose],named_configuration: str):
         """
         Plan a path to a named configuration.
 
@@ -167,25 +168,61 @@ class MotionPlanner:
         :returns: The planned motion path request.
         :rtype: moveit_msgs.msg.MotionPlanRequest
         """
-        pass
+        goal_constraints = self.saved_configurations[named_configuration]
+        path = MotionPlanRequest()
+        path.group_name = 'fer_arm'
+        current_state = self.get_current_robot_state()
 
-    def save_plan(self, plan):
+        if not start_pose:
+            path.start_state = current_state
+        else:
+            start_state_ik_solution = await CustomRobotState.compute_IK(self.robot_state, start_pose, 'fer_arm')
+            path.start_state = start_state_ik_solution.solution
+
+        path.goal_constraints = goal_constraints
+        return path
+
+
+    def save_configuration(self, configuration_name: str, joint_configuration: Dict[str, float]):
+        """
+        Save a joint configuration with a name.
+
+        :param configuration_name: The name of the robot configuration
+        :param joint_configuration: The goal joint angles
+        :type joint_configuration: Dict[str, float]
+        """
+        saved_joint_constraints = [Constraints()]
+        saved_joint_constraints[0].joint_constraints = [
+            JointConstraint(
+                joint_name=joint,
+                position=angle,
+                tolerance_below=0.0001,
+                tolerance_above=0.0001,
+                weight=1.0
+            )
+            for joint, angle in joint_configuration.items()
+        ]
+        self.saved_configurations[configuration_name] = saved_joint_constraints
+
+
+    def save_plan(self, plan: MotionPlanRequest | RobotTrajectory, plan_name: str):
         """
         Save a motion plan for future execution.
 
         :param plan: The motion plan to save.
-        :type plan: moveit_msgs.msg.MotionPlanRequest
+        :type plan: moveit_msgs.msg.MotionPlanRequest | moveit_msgs.msg.RobotTrajectory
+        :param plan_name: The name of the plan to be saved.
         """
-        pass
+        self.saved_plans[plan_name] = plan
 
-    def inspect_plan(self, plan):
+    def inspect_plan(self, plan_name: str):
         """
         Inspect a previously saved motion plan.
 
-        :param plan: The motion plan to inspect.
-        :type plan: moveit_msgs.msg.MotionPlanRequest
+        :param plan_name: The name of the motion plan to inspect.
         """
-        pass
+        # Find a way to format this better
+        print(self.saved_plans[plan_name])
 
     def get_current_robot_state(self) -> RobotState:
         """
