@@ -23,6 +23,7 @@ class RobotState:
         if joint_state is None:
             joint_state = self.joint_state
         request = GetPositionIK.Request()
+        request.ik_request.ik_link_name = 'fer_hand_tcp'
         request.ik_request.group_name = group_name
         request.ik_request.robot_state.joint_state = joint_state
         request.ik_request.pose_stamped.pose = goal_pose

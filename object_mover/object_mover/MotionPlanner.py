@@ -152,12 +152,12 @@ class MotionPlanner:
         if not goal_pose.position: 
             # Fill out the goal_pose.position with the current position
             # To get the current position, we will need to call the compute_FK function
-            fk_solution = await CustomRobotState.compute_FK(self.robot_state,['fer_link8'])
+            fk_solution = await CustomRobotState.compute_FK(self.robot_state,['fer_hand_tcp'])
             end_effector_pose = fk_solution[0]
             goal_pose.position = end_effector_pose[0].pose.position
 
         if not goal_pose.orientation:
-            fk_solution = await CustomRobotState.compute_FK(self.robot_state,['fer_link8'])
+            fk_solution = await CustomRobotState.compute_FK(self.robot_state,['fer_hand_tcp'])
             end_effector_pose = fk_solution[0]
             goal_pose.orientation = end_effector_pose[0].pose.orientation
 
