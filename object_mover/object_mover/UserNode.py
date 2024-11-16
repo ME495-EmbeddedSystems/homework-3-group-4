@@ -7,7 +7,7 @@ from moveit_msgs.msg import MotionPlanRequest
 from rclpy.action import ActionServer , ActionClient
 from moveit_msgs.action import MoveGroup , ExecuteTrajectory
 import object_mover.utils as utils
-from object_mover_interfaces.srv import FrankaJointRequest, FrankaPoseRequest, TestPlanningScene, CartesianPathRequest
+from object_mover_interfaces.srv import FrankaJointRequest, FrankaPoseRequest, TestPlanningScene, CartesianPathRequest, GripperRequest
 from object_mover.PlanningScene import PlanningScene
 from std_msgs.msg import Empty
 from moveit_msgs.srv import GetCartesianPath
@@ -48,6 +48,8 @@ class UserNode(Node):
         self.planning_scene_clear_test = self.create_service(TestPlanningScene, 'test_planning_scene_clear_srv', self.test_planning_scene_clear_callback, callback_group=self.cbgroup)
         self.planning_scene_get_scene = self.create_service(TestPlanningScene, 'test_planning_get_scene_srv', self.test_planning_get_scene_callback, callback_group=self.cbgroup)
         self.plan_test = PlanningScene(self)
+
+        self.gripper_serv = self.create_service(GripperRequest, 'move_gripper', self.gripper_callback, callback_group=self.cbgroup)
 
     async def test_planning_get_scene_callback(self, request, response):
         await self.plan_test.get_scene()
@@ -129,6 +131,11 @@ class UserNode(Node):
         # self.get_logger().info(f"{request.sample_goal_pose}")
         motion_plan_request: MotionPlanRequest = await self.motion_planner.plan_pose_to_pose(start_pose=None, goal_pose=request.sample_goal_pose)
         await self.motion_planner.execute_plan(motion_plan_request)
+        return response
+
+    async def gripper_callback(self, request: GripperRequest, response):
+        self.get_logger().info("Gripper service called")
+        gripper_resp = await self.motion_planner.toggle_gripper(request.gripper_config)
         return response
 
     async def move_action_callback(self, goal_handle):

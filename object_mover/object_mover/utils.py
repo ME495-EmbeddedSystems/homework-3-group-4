@@ -41,3 +41,44 @@ def populate_joint_constraints(ik_solution: RobotState) -> list[Constraints]:
         computed_joint_constraints.joint_constraints.append(joint_constraint)
 
     return [computed_joint_constraints]
+
+def populate_gripper_constraints(gripper_configuration: str):
+    """
+    Populate the MotionPlanRequest.goal_constraints for opening and closing the gripper
+    """
+    goal_constraints = [Constraints()]
+    if gripper_configuration == 'close':
+        goal_constraints[0].joint_constraints = [
+            JointConstraint(
+                joint_name='fer_finger_joint1', 
+                position=0.035, 
+                tolerance_above=0.0001, 
+                tolerance_below=0.0001, 
+                weight=1.0
+            ),
+            JointConstraint(
+                joint_name='fer_finger_joint2', 
+                position=0.035, 
+                tolerance_above=0.0001, 
+                tolerance_below=0.0001, 
+                weight=1.0
+            )
+        ]
+    if gripper_configuration == 'open':
+        goal_constraints[0].joint_constraints = [
+            JointConstraint(
+                joint_name='fer_finger_joint1', 
+                position=0.000, 
+                tolerance_above=0.0001, 
+                tolerance_below=0.0001, 
+                weight=1.0
+            ),
+            JointConstraint(
+                joint_name='fer_finger_joint2', 
+                position=0.000, 
+                tolerance_above=0.0001, 
+                tolerance_below=0.0001, 
+                weight=1.0
+            )
+        ]
+    return goal_constraints
