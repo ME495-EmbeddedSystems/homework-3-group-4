@@ -82,8 +82,12 @@ class UserNode(Node):
         robot_traj = await self.motion_planner.plan_cartesian_path(
             waypoints=request.waypoints,
         )
-        self.motion_planner.execute_plan(robot_traj)
-        return True
+        
+        response.result = True
+
+        self.motion_planner.execute_trajectory(robot_traj)
+        
+        return response
 
 
     async def joint_path_callback(self, request: FrankaJointRequest, response):

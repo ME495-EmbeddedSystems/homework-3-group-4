@@ -170,7 +170,7 @@ class MotionPlanner:
         return path
 
 
-    async def _get_cartesian_path_request(self, waypoints: List[Pose] , max_step : float = 0.1 , avoid_collisions: bool = True, path_constraints: Constraints = Constraints()) -> GetCartesianPath.Request:
+    def _get_cartesian_path_request(self, waypoints: List[Pose] , max_step : float = 0.1 , avoid_collisions: bool = True, path_constraints: Constraints = Constraints()) -> GetCartesianPath.Request:
         """
         Gets the Cartesian path request to send to /compute_cartesian_path.
 
@@ -185,6 +185,7 @@ class MotionPlanner:
         :returns: The planned motion path request.
         :rtype: moveit_msgs.srv.GetCartesianPath
         """
+
         request = GetCartesianPath.Request()
 
         #Time stamp of the request
@@ -202,7 +203,7 @@ class MotionPlanner:
         request.group_name  = "fer_arm"
 
         #Load the waypoints
-
+        
         request.waypoints = waypoints
 
         request.max_step = max_step
@@ -228,9 +229,12 @@ class MotionPlanner:
         :returns: The planned motion path request.
         :rtype: moveit_msgs.srv.GetCartesianPath
         """
-        path_request = await self._get_cartesian_path_request(waypoints,max_step,avoid_collisions,path_constraints)
-        robot_traj = await self.plan_cart_path_client.call_async(path_request).result().solution
-
+        path_request = self._get_cartesian_path_request(waypoints,max_step,avoid_collisions,path_constraints)
+        # self.node.get_logger().info(f"{path_request}")
+        robot_traj = await self.plan_cart_path_client.call_async(path_request)
+        robot_traj = robot_traj.solution
+        self.node.get_logger().info(f"{type(robot_traj)}")
+        
         return robot_traj
     
     def execute_trajectory(self, robot_traj : RobotTrajectory):
