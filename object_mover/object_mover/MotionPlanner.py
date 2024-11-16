@@ -2,11 +2,15 @@ import rclpy
 from rclpy.action import ActionClient
 import rclpy.callback_groups
 from rclpy.node import Node
-from moveit_msgs.action import MoveGroup
+from moveit_msgs.action import MoveGroup , ExecuteTrajectory
 from geometry_msgs.msg import Pose
 from sensor_msgs.msg import JointState
 from moveit_msgs.msg import RobotState, Constraints, MotionPlanRequest, JointConstraint, RobotTrajectory
+from moveit_msgs.srv import GetCartesianPath
 from typing import Optional, List, Dict
+from builtin_interfaces.msg import Time
+from std_msgs.msg import Header
+from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 from object_mover.RobotState import RobotState as CustomRobotState
 from object_mover.utils import populate_joint_constraints
 
@@ -30,12 +34,32 @@ class MotionPlanner:
         """Initialize the MotionPlanner class."""
         self.node = node
         self.robot_state = robot_state
+        self.move_action_client = ActionClient(self.node, MoveGroup, 'move_action', callback_group=MutuallyExclusiveCallbackGroup()) 
         self.saved_plans = {}
         self.saved_configurations = {}
         self.node.action_client = ActionClient(self.node, MoveGroup, 'move_action', callback_group=rclpy.callback_groups.MutuallyExclusiveCallbackGroup()) 
 
-        if not self.node.action_client.wait_for_server(timeout_sec=10):
+        if not self.move_action_client.wait_for_server(timeout_sec=10):
             raise RuntimeError('MoveGroup action server not ready')
+
+        ### Plan cartesian path needed services and actions
+
+        # Calculate cartesian path service
+        self.plan_cart_path_client = self.node.create_client(
+            srv_name= '/compute_cartesian_path',
+            srv_type= GetCartesianPath,
+            callback_group= MutuallyExclusiveCallbackGroup()
+        )
+
+        #Client for the execuate trajectory action
+        self.execute_trajectory_client = ActionClient(
+            node= self.node,
+            action_name= '/execute_trajectory',
+            action_type= ExecuteTrajectory
+        )
+
+        if not self.execute_trajectory_client.wait_for_server(timeout_sec=10):
+            raise RuntimeError('execute_trajectory client action server not ready')
 
     async def execute_plan(self, plan: MotionPlanRequest) -> bool:
         """
@@ -49,7 +73,7 @@ class MotionPlanner:
         move_group_goal = MoveGroup.Goal()
         move_group_goal.request = plan
         move_group_goal.planning_options.plan_only = False
-        goal_handle = await self.node.action_client.send_goal_async(move_group_goal)
+        goal_handle = await self.move_action_client.send_goal_async(move_group_goal)
         if not goal_handle.accepted:
             return False
 
@@ -146,18 +170,98 @@ class MotionPlanner:
         if execute:
             self.execute_plan(path)
         return path
-        
 
-    async def plan_cartesian_path(self, waypoints: List[Pose]):
+
+    def _get_cartesian_path_request(self, waypoints: List[Pose] , max_step : float = 0.1 , avoid_collisions: bool = True, path_constraints: Constraints = Constraints()) -> GetCartesianPath.Request:
+        """
+        Gets the Cartesian path request to send to /compute_cartesian_path.
+
+        :param waypoints: A list of poses that define the Cartesian path.
+        :type waypoints: List[geometry_msgs.msg.Pose]
+        :param max_step: The maximum step between waypoints (?) [m?]
+        :type max_step: float
+        :param avoid_collisions: Whether to avoid collisions or not.
+        :type avoid_collisions: bool
+        :param path_constraints: The path's constraints.
+        :type path_constraints: moveit_msgs.msg.Constraints
+        :returns: The planned motion path request.
+        :rtype: moveit_msgs.srv.GetCartesianPath
+        """
+
+        request = GetCartesianPath.Request()
+
+        #Time stamp of the request
+        stamp = Time()
+
+        stamp.nanosec = self.node.get_clock().now().nanoseconds
+        
+        stamp.sec = int(stamp.nanosec // 1.0e9)
+
+        request.header = Header(
+            stamp = stamp,
+            frame_id = "base"
+        )
+
+        request.group_name  = "fer_arm"
+
+        #Load the waypoints
+        
+        request.waypoints = waypoints
+
+        request.max_step = max_step
+
+        request.avoid_collisions = avoid_collisions
+
+        request.path_constraints = path_constraints
+
+        return request
+    
+    async def plan_cartesian_path(self, waypoints: List[Pose] , max_step : float = 0.1 , avoid_collisions: bool = True, path_constraints: Constraints = Constraints()) -> RobotTrajectory:
         """
         Plan a Cartesian path from a sequence of waypoints.
 
         :param waypoints: A list of poses that define the Cartesian path.
         :type waypoints: List[geometry_msgs.msg.Pose]
+        :param max_step: The maximum step between waypoints (?) [m?]
+        :type max_step: float
+        :param avoid_collisions: Whether to avoid collisions or not.
+        :type avoid_collisions: bool
+        :param path_constraints: The path's constraints.
+        :type path_constraints: moveit_msgs.msg.Constraints
         :returns: The planned motion path request.
-        :rtype: moveit_msgs.msg.MotionPlanRequest
+        :rtype: moveit_msgs.srv.GetCartesianPath
+        """
+        path_request = self._get_cartesian_path_request(waypoints,max_step,avoid_collisions,path_constraints)
+        # self.node.get_logger().info(f"{path_request}")
+        robot_traj = await self.plan_cart_path_client.call_async(path_request)
+        robot_traj = robot_traj.solution
+        self.node.get_logger().info(f"{type(robot_traj)}")
+        
+        return robot_traj
+    
+    def execute_trajectory(self, robot_traj : RobotTrajectory):
+        """
+        Execute a trajectory using the ExecuteTrajectory action.
+        :param robot_traj: The robot trajectory to execute. The output from the plan_cartesian_path function.
+        :type robot_traj: moveit_msgs.msg.RobotTrajectory
+        """
+        action = ExecuteTrajectory.Goal()
+        action.trajectory = robot_traj
+        action.controller_names = ["fer_arm_controller","fer_gripper"]
+
+        self.execute_trajectory_client.wait_for_server()
+
+        self.execute_trajectory_future = self.execute_trajectory_client.send_goal_async(action)
+        self.execute_trajectory_future.add_done_callback(self._execute_trajectory_response_callback)
+
+    def _execute_trajectory_response_callback(self,future):
+        """
+        Execute trajectory response callback function. Called after the ExecuteTrajectory action future is done.
+        :param future: The completed future object.
+        :type future: Future (?) 
         """
         pass
+        # response = future.result()
 
     async def plan_to_named_configuration(self, start_pose: Optional[Pose],named_configuration: str):
         """

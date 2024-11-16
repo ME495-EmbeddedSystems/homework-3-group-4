@@ -4,12 +4,16 @@ from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 from object_mover.MotionPlanner import MotionPlanner
 from object_mover.RobotState import RobotState
 from moveit_msgs.msg import MotionPlanRequest
-from rclpy.action import ActionServer
-from moveit_msgs.action import MoveGroup
+from rclpy.action import ActionServer , ActionClient
+from moveit_msgs.action import MoveGroup , ExecuteTrajectory
 import object_mover.utils as utils
-from object_mover_interfaces.srv import FrankaJointRequest, FrankaPoseRequest, TestPlanningScene
+from object_mover_interfaces.srv import FrankaJointRequest, FrankaPoseRequest, TestPlanningScene, CartesianPathRequest
 from object_mover.PlanningScene import PlanningScene
 from std_msgs.msg import Empty
+from moveit_msgs.srv import GetCartesianPath
+
+
+
 
 def main(args=None):
     rclpy.init(args=args)
@@ -35,9 +39,8 @@ class UserNode(Node):
 
         # create a service that takes an empty request
         self.serv = self.create_service(FrankaJointRequest, 'test_plan_joint_path', self.joint_path_callback, callback_group=self.cbgroup)
-
         self.pose_serv = self.create_service(FrankaPoseRequest, 'test_plan_pose_to_pose', self.pose_to_pose_callback, callback_group=self.cbgroup)
-
+        self.cartestian_path_service = self.create_service(CartesianPathRequest, 'test_cartesian_path', self.cartesian_path_callback, callback_group=self.cbgroup)
         self.planning_scene_test = self.create_service(TestPlanningScene, 'test_planning_scene_srv', self.test_planning_scene_callback, callback_group=self.cbgroup)
         self.planning_scene_remove_test = self.create_service(TestPlanningScene, 'test_planning_scene_remove_srv', self.test_planning_scene_remove_callback, callback_group=self.cbgroup)
         self.planning_scene_attach_test = self.create_service(TestPlanningScene, 'test_planning_scene_attach_srv', self.test_planning_scene_attach_callback, callback_group=self.cbgroup)
@@ -50,7 +53,16 @@ class UserNode(Node):
         await self.plan_test.get_scene()
         response.result = True
         return response
-    
+
+    def test_planning_scene_remove_callback(self, request, response):
+        self.plan_test.remove_box('box')
+        response.result = True
+        return response
+
+    def test_planning_scene_attach_callback(self, request, response):
+        link = 'fer_rightfinger'
+        self.plan_test.attach_object(link, 'box')
+
     async def test_planning_scene_clear_callback(self, request, response):
         await self.plan_test.clear_scene()
         response.result = True
@@ -73,15 +85,27 @@ class UserNode(Node):
         link = 'fer_link7'
         await self.plan_test.attach_object(link, 'box')
         response.result = True
-        return response               
+        return response
+
 
     async def test_planning_scene_detach_callback(self, request, response):
         await self.plan_test.detach_object('box')
         response.result = True
-        return response       
-    
-    
+        return response
+
+
+    async def cartesian_path_callback(self, request: CartesianPathRequest, response):
+        self.get_logger().info("Got a request to plan a cartesian path")
+        robot_traj = await self.motion_planner.plan_cartesian_path(
+            waypoints=request.waypoints,
+        )
         
+        response.result = True
+
+        self.motion_planner.execute_trajectory(robot_traj)
+        
+        return response
+
 
     async def joint_path_callback(self, request: FrankaJointRequest, response):
         self.get_logger().info("Empty Service Called")
