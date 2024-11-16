@@ -1,6 +1,5 @@
 import rclpy
 from moveit_msgs.srv import GetPlanningScene, ApplyPlanningScene
-from moveit_msgs.msg import PlanningScene as MoveitPlanningScene
 from moveit_msgs.msg import CollisionObject, AttachedCollisionObject
 from geometry_msgs.msg import Pose
 import rclpy.node

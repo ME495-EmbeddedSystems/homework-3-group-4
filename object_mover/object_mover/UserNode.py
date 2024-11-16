@@ -67,7 +67,6 @@ class UserNode(Node):
 
     async def test_planning_scene_detach_callback(self, request, response):
         await self.plan_test.detach_object(request.name)
-        response.result = True
         return response       
         
 
