@@ -52,7 +52,8 @@ class PlanningScene:
 
         box = SolidPrimitive()
         box.type = SolidPrimitive.BOX
-        box.dimensions = dimension.data
+        # box.dimensions is float64[] dimensions
+        box.dimensions = dimension
         collision_object.id = name
         collision_object.primitives.append(box)
         collision_object.primitive_poses.append(box_pose)
@@ -139,7 +140,7 @@ class PlanningScene:
         del self.objects[name]
         attach_object = AttachedCollisionObject()
         attach_object.object = collision_object
-        attach_object.link_name = 'fer_link7'
+        attach_object.link_name = 'fer_hand_tcp'
         self.scene_response.scene.robot_state.attached_collision_objects.append(attach_object)
         response = await self.apply_scene.call_async(ApplyPlanningScene.Request(scene=self.scene_response.scene))
         return response

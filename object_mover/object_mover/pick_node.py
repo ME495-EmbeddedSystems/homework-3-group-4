@@ -35,6 +35,12 @@ class PickNode(Node):
     # Maybe need to create custom service type for pick service as we want to be able to load multiple things to it
     async def pick_callback(self, request: PickPose, response):
         # For now I am assuming we are locating pose of object as the input to pick service 
+        box_pose = Pose()
+        box_pose.position.x = 0.59
+        box_pose.position.y = 0.13
+        box_pose.position.z = 0.1378
+        await self.mpi.planning_scene.add_collision_objects('box', box_pose, [0.05, 0.05, 0.05])
+
         object_pose = Pose()
         object_pose = request.pick_point
         pose1 = copy.deepcopy(object_pose)
@@ -42,20 +48,28 @@ class PickNode(Node):
         pose1.position.z = object_pose.position.z + 0.4
         plan = await self.mpi.plan_path(goal_pose = pose1) 
         await self.mpi.exec_path(path = plan)
+
+        await self.mpi.motion_planner.toggle_gripper('open')
+
         pose2 = object_pose
         plan = await self.mpi.plan_path(goal_pose = pose2)
         await self.mpi.exec_path(path = plan)
+
+        await self.mpi.motion_planner.toggle_gripper('close')
         # Closing grippers
 
         # Lifts object slighty off table
-        # pose3 = object_pose
-        # pose3.position.z = object_pose.position.z + 3.0
-        # plan = await self.mpi.plan_path(goal_pose = pose3)
-        # await self.mpi.exec_path(path = plan)
+        pose3 = object_pose
+        pose3.position.z = object_pose.position.z + 0.3
+        plan = await self.mpi.plan_path(goal_pose = pose3)
+        await self.mpi.exec_path(path = plan)
         # Attaching box to arm in scene
-        #await self.mpi.planning_scene.attach_object('fer_gripper','box')
+        await self.mpi.planning_scene.attach_object('box')
         # Move arm to other side of obstacle
-
+        pose4 = object_pose
+        pose4.position.y = object_pose.position.y + 0.3
+        plan = await self.mpi.plan_path(goal_pose= pose4)
+        await self.mpi.exec_path(path = plan)
         # Drop object
         return response
 
