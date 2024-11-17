@@ -16,7 +16,8 @@ find_package(rosidl_default_generators REQUIRED)
 rosidl_generate_interfaces(${PROJECT_NAME}
   "srv/FrankaJointRequest.srv"
   "srv/FrankaPoseRequest.srv"
-  "srv/TestPlanningScene.srv"
+  "srv/AddBox.srv"
+  "srv/BoxName.srv"
   "srv/PickPose.srv"
   "srv/CartesianPathRequest.srv"
   "srv/GripperRequest.srv"

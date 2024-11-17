@@ -6,7 +6,7 @@ from moveit_msgs.action import MoveGroup , ExecuteTrajectory
 from geometry_msgs.msg import Pose
 from sensor_msgs.msg import JointState
 from moveit_msgs.msg import RobotState, Constraints, MotionPlanRequest, JointConstraint, RobotTrajectory
-from moveit_msgs.srv import GetCartesianPath
+from moveit_msgs.srv import GetCartesianPath, GetPositionFK
 from typing import Optional, List, Dict
 from builtin_interfaces.msg import Time
 from std_msgs.msg import Header
@@ -73,13 +73,13 @@ class MotionPlanner:
         move_group_goal = MoveGroup.Goal()
         move_group_goal.request = plan
         move_group_goal.planning_options.plan_only = False
+
         goal_handle = await self.move_action_client.send_goal_async(move_group_goal)
         if not goal_handle.accepted:
             return False
 
         # print type of goal_handle
         result = await goal_handle.get_result_async()
-        self.node.get_logger().info(f"{result}")        
         return result.result.error_code == 0
 
     async def plan_joint_path(self, start_joints: Optional[List[float]], goal_joints: Dict[str, float], execute: bool = False, save_plan: bool = False, plan_name: str = 'recent') -> MotionPlanRequest: # noqa 501
@@ -94,6 +94,7 @@ class MotionPlanner:
         :rtype: moveit_msgs.msg.MotionPlanRequest
         """
         path = MotionPlanRequest()
+        path.max_velocity_scaling_factor = 0.5
         path.start_state.joint_state = JointState()
 
         if start_joints:
@@ -105,7 +106,7 @@ class MotionPlanner:
             path.start_state.joint_state.position = current_state.joint_state.position
 
         path.goal_constraints = [Constraints()]
-        path.group_name = 'fer_arm'
+        path.group_name = 'fer_manipulator'
         path.goal_constraints[0].joint_constraints = [
             JointConstraint(
                 joint_name=joint,
@@ -123,7 +124,6 @@ class MotionPlanner:
         if execute:
             self.execute_plan(path)
 
-        self.node.get_logger().info(f"Path: {path}")
         return path
 
     async def plan_pose_to_pose(self, start_pose: Optional[Pose], goal_pose: Optional[Pose], execute: bool = False, save_plan: bool = False, plan_name: str = 'recent'):
@@ -138,24 +138,25 @@ class MotionPlanner:
         :rtype: moveit_msgs.msg.MotionPlanRequest
         """
         path = MotionPlanRequest()
-        path.group_name = 'fer_arm'
+        path.max_velocity_scaling_factor = 0.5
+        path.group_name = 'fer_manipulator'
         current_state = self.get_current_robot_state()
 
         if not start_pose:
             path.start_state = current_state
         else:
-            start_state_ik_solution = await CustomRobotState.compute_IK(self.robot_state, start_pose, 'fer_arm')
+            start_state_ik_solution = await CustomRobotState.compute_IK(self.robot_state, start_pose, 'fer_manipulator')
             path.start_state = start_state_ik_solution.solution 
 
         if not goal_pose.position: 
             # Fill out the goal_pose.position with the current position
             # To get the current position, we will need to call the compute_FK function
-            fk_solution = await CustomRobotState.compute_FK(self.robot_state,['fer_link7'])
+            fk_solution = await CustomRobotState.compute_FK(self.robot_state,['fer_hand_tcp'])
             end_effector_pose = fk_solution[0]
             goal_pose.position = end_effector_pose[0].pose.position
 
         if not goal_pose.orientation:
-            fk_solution = await CustomRobotState.compute_FK(self.robot_state,['fer_link7'])
+            fk_solution = await CustomRobotState.compute_FK(self.robot_state,['fer_hand_tcp'])
             end_effector_pose = fk_solution[0]
             goal_pose.orientation = end_effector_pose[0].pose.orientation
 
@@ -232,11 +233,8 @@ class MotionPlanner:
         :rtype: moveit_msgs.srv.GetCartesianPath
         """
         path_request = self._get_cartesian_path_request(waypoints,max_step,avoid_collisions,path_constraints)
-        # self.node.get_logger().info(f"{path_request}")
         robot_traj = await self.plan_cart_path_client.call_async(path_request)
         robot_traj = robot_traj.solution
-        self.node.get_logger().info(f"{type(robot_traj)}")
-        
         return robot_traj
     
     def execute_trajectory(self, robot_traj : RobotTrajectory):
@@ -291,13 +289,13 @@ class MotionPlanner:
         """
         goal_constraints = self.saved_configurations[named_configuration]
         path = MotionPlanRequest()
-        path.group_name = 'fer_arm'
+        path.group_name = 'fer_manipulator'
         current_state = self.get_current_robot_state()
 
         if not start_pose:
             path.start_state = current_state
         else:
-            start_state_ik_solution = await CustomRobotState.compute_IK(self.robot_state, start_pose, 'fer_arm')
+            start_state_ik_solution = await CustomRobotState.compute_IK(self.robot_state, start_pose, 'fer_manipulator')
             path.start_state = start_state_ik_solution.solution
 
         path.goal_constraints = goal_constraints

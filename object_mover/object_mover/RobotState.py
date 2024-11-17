@@ -6,8 +6,8 @@ from geometry_msgs.msg import PoseStamped
 from typing import List
 
 class RobotState:
-    def __init__(self, ros_node: Node):
-        self.node = ros_node
+    def __init__(self, node: Node):
+        self.node = node
         self.joint_state_sub = self.node.create_subscription(JointState, '/joint_states', self.joint_state_callback, 10)
         self.fk_client = self.node.create_client(GetPositionFK, '/compute_fk')
         self.ik_client = self.node.create_client(GetPositionIK, '/compute_ik')
@@ -19,10 +19,11 @@ class RobotState:
     async def compute_IK(self,  
                         goal_pose: PoseStamped, 
                         joint_state: JointState = None, 
-                        group_name: str = 'fer_arm'):
+                        group_name: str = 'fer_manipulator'):
         if joint_state is None:
             joint_state = self.joint_state
         request = GetPositionIK.Request()
+        request.ik_request.ik_link_name = 'fer_hand_tcp'
         request.ik_request.group_name = group_name
         request.ik_request.robot_state.joint_state = joint_state
         request.ik_request.pose_stamped.pose = goal_pose

@@ -23,6 +23,6 @@ def generate_launch_description():
                            ]
              ),
         Node(package="object_mover",
-             executable="user_node",
+             executable="pick_node",
              )
         ])

@@ -1,0 +1,5 @@
+string name
+geometry_msgs/Pose position
+std_msgs/Float64MultiArray dimension
+---
+bool result
