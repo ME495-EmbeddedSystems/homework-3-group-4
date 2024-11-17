@@ -4,7 +4,7 @@
 ros2 service call /test_planning_scene_clear_srv std_srvs/Empty "{}"
 
 # Add a box to the planning scene
-ros2 service call /test_planning_scene_add_srv object_mover_interfaces/srv/AddBox   "{name: 'box', position: {position: {x: 1.0, y: 2.0, z: 3.0}, orientation: {x: 0.0, y: 0.0, z: 0.0, w: 1.0}}, dimension: {data: [4.0, 5.0, 6.0]}}"
+ros2 service call /test_planning_scene_add_srv object_mover_interfaces/srv/AddBox   "{name: 'box', position: {position: {x: 1.0, y: 2.0, z: 3.0}, orientation: {x: 0.0, y: 0.0, z: 0.0, w: 1.0}}, dimension: {data: [1.0, 1.0, 1.0]}}"
 
 # Remove a box from the planning scene
 ros2 service call /test_planning_scene_remove_srv object_mover_interfaces/srv/BoxName "{name: 'box'}"
