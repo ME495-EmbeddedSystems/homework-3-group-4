@@ -12,7 +12,7 @@ from builtin_interfaces.msg import Time
 from std_msgs.msg import Header
 from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 from object_mover.RobotState import RobotState as CustomRobotState
-from object_mover.utils import populate_joint_constraints
+from object_mover.utils import populate_joint_constraints, populate_gripper_constraints
 
 class MotionPlanner:
     """
@@ -258,6 +258,23 @@ class MotionPlanner:
         """
         pass
         # response = future.result()
+
+    async def toggle_gripper(self, gripper_state: str, execute: bool = True):
+        """
+        Toggle the gripper of the arm.
+
+        :returns: The planned motion plan request
+        :rtype: moveit_msgs.msg.MotionPlanRequest
+        """
+        path = MotionPlanRequest()
+        path.group_name = 'hand'
+        current_state = self.get_current_robot_state()
+        path.start_state = current_state
+        path.goal_constraints = populate_gripper_constraints(gripper_state)
+        if execute:
+            await self.execute_plan(path)
+        return path
+
 
     async def plan_to_named_configuration(self, start_pose: Optional[Pose],named_configuration: str):
         """

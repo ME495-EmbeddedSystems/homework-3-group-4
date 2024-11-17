@@ -7,12 +7,10 @@ from moveit_msgs.msg import MotionPlanRequest
 from rclpy.action import ActionServer , ActionClient
 from moveit_msgs.action import MoveGroup , ExecuteTrajectory
 import object_mover.utils as utils
-from object_mover_interfaces.srv import FrankaJointRequest, FrankaPoseRequest, TestPlanningScene, CartesianPathRequest
+from object_mover_interfaces.srv import FrankaJointRequest, FrankaPoseRequest, AddBox, BoxName, CartesianPathRequest, GripperRequest
 from object_mover.PlanningScene import PlanningScene
-from std_msgs.msg import Empty
+from std_srvs.srv import Empty
 from moveit_msgs.srv import GetCartesianPath
-
-
 
 
 def main(args=None):
@@ -40,72 +38,37 @@ class UserNode(Node):
         # create a service that takes an empty request
         self.serv = self.create_service(FrankaJointRequest, 'test_plan_joint_path', self.joint_path_callback, callback_group=self.cbgroup)
         self.pose_serv = self.create_service(FrankaPoseRequest, 'test_plan_pose_to_pose', self.pose_to_pose_callback, callback_group=self.cbgroup)
-        self.cartestian_path_service = self.create_service(CartesianPathRequest, 'test_cartesian_path', self.cartesian_path_callback, callback_group=self.cbgroup)
-        self.planning_scene_test = self.create_service(TestPlanningScene, 'test_planning_scene_srv', self.test_planning_scene_callback, callback_group=self.cbgroup)
-        self.planning_scene_remove_test = self.create_service(TestPlanningScene, 'test_planning_scene_remove_srv', self.test_planning_scene_remove_callback, callback_group=self.cbgroup)
-        self.planning_scene_attach_test = self.create_service(TestPlanningScene, 'test_planning_scene_attach_srv', self.test_planning_scene_attach_callback, callback_group=self.cbgroup)
-        self.planning_scene_detach_test = self.create_service(TestPlanningScene, 'test_planning_scene_detach_srv', self.test_planning_scene_detach_callback, callback_group=self.cbgroup)
-        self.planning_scene_clear_test = self.create_service(TestPlanningScene, 'test_planning_scene_clear_srv', self.test_planning_scene_clear_callback, callback_group=self.cbgroup)
-        self.planning_scene_get_scene = self.create_service(TestPlanningScene, 'test_planning_get_scene_srv', self.test_planning_get_scene_callback, callback_group=self.cbgroup)
+
+        self.planning_scene_add_test = self.create_service(AddBox, 'test_planning_scene_add_srv', self.test_planning_scene_add_callback, callback_group=self.cbgroup)
+        self.planning_scene_remove_test = self.create_service(BoxName, 'test_planning_scene_remove_srv', self.test_planning_scene_remove_callback, callback_group=self.cbgroup)
+        self.planning_scene_attach_test = self.create_service(BoxName, 'test_planning_scene_attach_srv', self.test_planning_scene_attach_callback, callback_group=self.cbgroup)
+        self.planning_scene_detach_test = self.create_service(BoxName, 'test_planning_scene_detach_srv', self.test_planning_scene_detach_callback, callback_group=self.cbgroup)
+        self.planning_scene_clear_test = self.create_service(Empty, 'test_planning_scene_clear_srv', self.test_planning_scene_clear_callback, callback_group=self.cbgroup)
         self.plan_test = PlanningScene(self)
-
-    async def test_planning_get_scene_callback(self, request, response):
-        await self.plan_test.get_scene()
-        response.result = True
-        return response
-
-    def test_planning_scene_remove_callback(self, request, response):
-        self.plan_test.remove_box('box')
-        response.result = True
-        return response
-
-    def test_planning_scene_attach_callback(self, request, response):
-        link = 'fer_rightfinger'
-        self.plan_test.attach_object(link, 'box')
-
+    
     async def test_planning_scene_clear_callback(self, request, response):
         await self.plan_test.clear_scene()
-        response.result = True
         return response
 
-    async def test_planning_scene_callback(self, request, response):
-        position = (0.5,0.5,1.0)
-        dimenstion = (0.2,0.2,0.2)
-        name = 'box'
-        await self.plan_test.add_collision_objects(name, position, dimenstion)
+    async def test_planning_scene_add_callback(self, request, response):
+        await self.plan_test.add_collision_objects(request.name, request.position, request.dimension)
         response.result = True
         return response
     
     async def test_planning_scene_remove_callback(self, request, response):
-        await self.plan_test.remove_box('box')
+        await self.plan_test.remove_box(request.name)
         response.result = True
         return response       
     
     async def test_planning_scene_attach_callback(self, request, response):
-        link = 'fer_link7'
-        await self.plan_test.attach_object(link, 'box')
+        await self.plan_test.attach_object(request.name)
         response.result = True
-        return response
-
+        return response               
 
     async def test_planning_scene_detach_callback(self, request, response):
-        await self.plan_test.detach_object('box')
-        response.result = True
-        return response
-
-
-    async def cartesian_path_callback(self, request: CartesianPathRequest, response):
-        self.get_logger().info("Got a request to plan a cartesian path")
-        robot_traj = await self.motion_planner.plan_cartesian_path(
-            waypoints=request.waypoints,
-        )
+        await self.plan_test.detach_object(request.name)
+        return response       
         
-        response.result = True
-
-        self.motion_planner.execute_trajectory(robot_traj)
-        
-        return response
-
 
     async def joint_path_callback(self, request: FrankaJointRequest, response):
         self.get_logger().info("Empty Service Called")
@@ -129,6 +92,11 @@ class UserNode(Node):
         # self.get_logger().info(f"{request.sample_goal_pose}")
         motion_plan_request: MotionPlanRequest = await self.motion_planner.plan_pose_to_pose(start_pose=None, goal_pose=request.sample_goal_pose)
         await self.motion_planner.execute_plan(motion_plan_request)
+        return response
+
+    async def gripper_callback(self, request: GripperRequest, response):
+        self.get_logger().info("Gripper service called")
+        gripper_resp = await self.motion_planner.toggle_gripper(request.gripper_config)
         return response
 
     async def move_action_callback(self, goal_handle):
