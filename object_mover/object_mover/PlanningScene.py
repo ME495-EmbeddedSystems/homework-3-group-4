@@ -4,6 +4,7 @@ from moveit_msgs.msg import CollisionObject, AttachedCollisionObject
 from geometry_msgs.msg import Pose
 import rclpy.node
 import rclpy.service
+import time
 from shape_msgs.msg import SolidPrimitive
 
 class PlanningScene:
@@ -22,6 +23,10 @@ class PlanningScene:
  
         self.objects = {}  
         self.attach_objects = {}
+
+        self.collision_object_publisher = self.node.create_publisher(CollisionObject, '/collision_object', 10)
+        self.attached_collision_object_publisher = self.node.create_publisher(AttachedCollisionObject, '/attached_collision_object', 10)
+
     async def add_collision_objects(self, name, position, dimension):
         """
         add the collision object to the environment
@@ -58,34 +63,64 @@ class PlanningScene:
 
     async def remove_box(self, name):
         """
-        remove the box in the environment
-        :param name: the name of the object
+        Remove the specified box from the environment by clearing the entire scene
+        and recreating it without the specified object.
+        :param name: The name of the object to remove.
         :type name: str
-        :return: the response of the service call
+        :return: The response of the service call.
         :rtype: ApplyPlanningScene.Response
         """
-        self.scene_response  = await self.get_scene.call_async(GetPlanningScene.Request())      
-        try:
-            for object in self.scene_response.scene.world.collision_objects:
-                if object.id == name:
-                    collision_object = object
-            self.scene_response.scene.world.collision_objects.remove(collision_object)
+        # Fetch the current planning scene
+        self.scene_response = await self.get_scene.call_async(GetPlanningScene.Request())
 
-        except:
-            self.node.get_logger().info('------------------The object is not in the collision objects------------------')
+        # Step 1: Clear all collision objects and attached objects
+        self.node.get_logger().info("Clearing all collision objects...")
 
-        try:
-            for object_attached in self.scene_response.scene.robot_state.attached_collision_objects:
-                if object_attached.object.id == name:
-                    object_remove = object_attached
-            self.scene_response.scene.robot_state.attached_collision_objects.remove(object_remove)
+        # Remove non-attached collision objects
+        for obj in self.scene_response.scene.world.collision_objects:
+            remove_obj = CollisionObject()
+            remove_obj.id = obj.id
+            remove_obj.operation = CollisionObject.REMOVE
+            remove_obj.header.stamp = self.node.get_clock().now().to_msg()
+            remove_obj.header.frame_id = obj.header.frame_id
+            self.collision_object_publisher.publish(remove_obj)
 
-        except:
-            self.node.get_logger().info('------------------The object is not in the attached collision objects------------------')
+        # Remove attached objects
+        for attached_obj in self.scene_response.scene.robot_state.attached_collision_objects:
+            remove_attached_obj = AttachedCollisionObject()
+            remove_attached_obj.object.id = attached_obj.object.id
+            remove_attached_obj.object.operation = CollisionObject.REMOVE
+            remove_attached_obj.link_name = attached_obj.link_name
+            remove_attached_obj.object.header.stamp = self.node.get_clock().now().to_msg()
+            remove_attached_obj.object.header.frame_id = attached_obj.object.header.frame_id
+            self.attached_collision_object_publisher.publish(remove_attached_obj)
 
-        response = await self.apply_scene.call_async(ApplyPlanningScene.Request(scene=self.scene_response.scene))
-        return response
-    
+        # Allow some time for the changes to take effect
+        time.sleep(1)
+
+        # Fetch the updated planning scene to verify changes
+        self.scene_response = await self.get_scene.call_async(GetPlanningScene.Request())
+        self.node.get_logger().info("Re-adding objects except the one to be removed...")
+
+        # Step 2: Re-add objects except the one to be removed
+        for obj_name, obj in self.objects.items():
+            if obj_name != name:
+                self.collision_object_publisher.publish(obj)
+
+        for obj_name, attached_obj in self.attach_objects.items():
+            if obj_name != name:
+                self.attached_collision_object_publisher.publish(attached_obj)
+
+        # Remove the object from the internal dictionary if it exists
+        if name in self.objects:
+            del self.objects[name]
+        if name in self.attach_objects:
+            del self.attach_objects[name]
+
+        # Verify that the object was removed successfully
+        self.scene_response = await self.get_scene.call_async(GetPlanningScene.Request())
+        self.node.get_logger().info(f"Objects remaining: {[obj.id for obj in self.scene_response.scene.world.collision_objects]}")
+
     async def attach_object(self, name):
         """
         attach the box to the end-effector of the robot
