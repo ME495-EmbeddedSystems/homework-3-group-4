@@ -5,13 +5,14 @@ from rclpy.node import Node
 from moveit_msgs.action import MoveGroup , ExecuteTrajectory
 from geometry_msgs.msg import Pose
 from sensor_msgs.msg import JointState
-from moveit_msgs.msg import RobotState, Constraints, MotionPlanRequest, JointConstraint, RobotTrajectory
+from moveit_msgs.msg import RobotState, Constraints, MotionPlanRequest, JointConstraint, RobotTrajectory, AllowedCollisionMatrix, AllowedCollisionEntry, AttachedCollisionObject
 from moveit_msgs.srv import GetCartesianPath, GetPositionFK
 from typing import Optional, List, Dict
 from builtin_interfaces.msg import Time
 from std_msgs.msg import Header
 from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 from object_mover.RobotState import RobotState as CustomRobotState
+from object_mover.PlanningScene import PlanningScene as CustomPlanningScene
 from object_mover.utils import populate_joint_constraints, populate_gripper_constraints
 
 class MotionPlanner:
@@ -30,10 +31,11 @@ class MotionPlanner:
         The action client used to communicate with the MoveIt action server.
     """
 
-    def __init__(self, node: Node, robot_state: CustomRobotState):
+    def __init__(self, node: Node, robot_state: CustomRobotState, planning_scene: CustomPlanningScene):
         """Initialize the MotionPlanner class."""
         self.node = node
         self.robot_state = robot_state
+        self.planning_scene = planning_scene
         self.move_action_client = ActionClient(self.node, MoveGroup, 'move_action', callback_group=MutuallyExclusiveCallbackGroup()) 
         self.saved_plans = {}
         self.saved_configurations = {}
@@ -61,7 +63,7 @@ class MotionPlanner:
         if not self.execute_trajectory_client.wait_for_server(timeout_sec=10):
             raise RuntimeError('execute_trajectory client action server not ready')
 
-    async def execute_plan(self, plan: MotionPlanRequest) -> bool:
+    async def execute_plan(self, plan: MotionPlanRequest, box_attached: bool = False) -> bool:
         """
         Execute a previously planned motion.
 
@@ -126,7 +128,7 @@ class MotionPlanner:
 
         return path
 
-    async def plan_pose_to_pose(self, start_pose: Optional[Pose], goal_pose: Optional[Pose], execute: bool = False, save_plan: bool = False, plan_name: str = 'recent'):
+    async def plan_pose_to_pose(self, start_pose: Optional[Pose], goal_pose: Optional[Pose], execute: bool = False, save_plan: bool = False, plan_name: str = 'recent', box_attached: bool = False):
         """
         Plan a path from a starting pose to a goal pose.
 
@@ -164,12 +166,22 @@ class MotionPlanner:
 
         computed_joint_constraints = populate_joint_constraints(ik_solution)
         path.goal_constraints = computed_joint_constraints
-        
+
+        # self.node.get_logger().info(f"{await self.planning_scene.get_collision_objects()}")
+        # if box_attached:
+        #     attached_object = AttachedCollisionObject()
+        #     # this is not the correct way to do this
+        #     attached_object.link_name = 'fer_hand_tcp'
+        #     collision_object_list = await self.planning_scene.get_collision_objects()
+        #     attached_object.object = collision_object_list[0]
+        #     attached_object.touch_links = ['base', 'fer_hand' 'fer_link0', 'fer_link1', 'fer_link2', 'fer_link3', 'fer_link4', 'fer_link5', 'fer_link6', 'fer_link7', 'fer_link8', 'fer_leftfinger', 'fer_rightfinger']
+        #     path.start_state.attached_collision_objects = [attached_object]
+
         if save_plan:
             self.save_plan(path, plan_name)
             
         if execute:
-            self.execute_plan(path)
+            self.execute_plan(path, box_attached)
         return path
 
 
