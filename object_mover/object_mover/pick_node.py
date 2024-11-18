@@ -41,6 +41,12 @@ class PickNode(Node):
         box_pose.position.z = 0.1378
         await self.mpi.planning_scene.add_collision_objects('box', box_pose, [0.05, 0.05, 0.05])
 
+        wall_pose = Pose()
+        wall_pose.position.x = 0.5
+        wall_pose.position.y = 0.3
+        wall_pose.position.z = 0.0
+
+        await self.mpi.planning_scene.add_collision_objects('wall', wall_pose, [0.05, 0.05, 1.0])
         object_pose = Pose()
         object_pose = request.pick_point
         pose1 = copy.deepcopy(object_pose)
@@ -59,10 +65,10 @@ class PickNode(Node):
         # Closing grippers
 
         # Lifts object slighty off table
-        pose3 = object_pose
-        pose3.position.z = object_pose.position.z + 0.3
-        plan = await self.mpi.plan_path(goal_pose = pose3)
-        await self.mpi.exec_path(path = plan)
+        # pose3 = object_pose
+        # pose3.position.z = object_pose.position.z + 0.3
+        # plan = await self.mpi.plan_path(goal_pose = pose3)
+        # await self.mpi.exec_path(path = plan)
         # Attaching box to arm in scene
         await self.mpi.planning_scene.attach_object('box')
         # Move arm to other side of obstacle

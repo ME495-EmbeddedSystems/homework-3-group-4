@@ -12,6 +12,7 @@ from builtin_interfaces.msg import Time
 from std_msgs.msg import Header
 from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 from object_mover.RobotState import RobotState as CustomRobotState
+from object_mover.PlanningScene import PlanningScene as CustomPlanningScene
 from object_mover.utils import populate_joint_constraints, populate_gripper_constraints
 
 class MotionPlanner:
@@ -30,10 +31,11 @@ class MotionPlanner:
         The action client used to communicate with the MoveIt action server.
     """
 
-    def __init__(self, node: Node, robot_state: CustomRobotState):
+    def __init__(self, node: Node, robot_state: CustomRobotState, planning_scene: CustomPlanningScene):
         """Initialize the MotionPlanner class."""
         self.node = node
         self.robot_state = robot_state
+        self.planning_scene = planning_scene
         self.move_action_client = ActionClient(self.node, MoveGroup, 'move_action', callback_group=MutuallyExclusiveCallbackGroup()) 
         self.saved_plans = {}
         self.saved_configurations = {}
@@ -164,7 +166,7 @@ class MotionPlanner:
 
         computed_joint_constraints = populate_joint_constraints(ik_solution)
         path.goal_constraints = computed_joint_constraints
-        
+
         if save_plan:
             self.save_plan(path, plan_name)
             

@@ -133,15 +133,54 @@ class PlanningScene:
         self.scene_response  = await self.get_scene.call_async(GetPlanningScene.Request())        
         if name in self.objects:
             collision_object = self.objects[name]
-        for object in self.scene_response.scene.world.collision_objects:
-            if object.id == name:
-                self.scene_response.scene.world.collision_objects.remove(object)
-                self.attach_objects[name] = object
+
+        # Remove non-attached collision objects
+        for obj in self.scene_response.scene.world.collision_objects:
+            remove_obj = CollisionObject()
+            remove_obj.id = obj.id
+            remove_obj.operation = CollisionObject.REMOVE
+            remove_obj.header.stamp = self.node.get_clock().now().to_msg()
+            remove_obj.header.frame_id = obj.header.frame_id
+            self.collision_object_publisher.publish(remove_obj)
+
+        time.sleep(1)
+
         del self.objects[name]
+
+
+
+        # Step 2: Re-add objects except the one to be removed
+        for obj_name, obj in self.objects.items():
+            if obj_name != name:
+                self.collision_object_publisher.publish(obj)
+
+        # adding the world object to the attached objects
+        self.attach_objects[name] = collision_object
+
+      
+
+
+        # for object in self.scene_response.scene.world.collision_objects:
+        #     if object.id == name:
+        #         temp_object = object
+        #         self.attach_objects[name] = object
+        #         self.scene_response.scene.world.collision_objects.remove(object)
+       
+        # self.scene_response.scene.world.collision_objects.remove(temp_object)
         attach_object = AttachedCollisionObject()
         attach_object.object = collision_object
         attach_object.link_name = 'fer_hand_tcp'
+        attach_object.weight = 0.0
         self.scene_response.scene.robot_state.attached_collision_objects.append(attach_object)
+        self.attached_collision_object_publisher.publish(attach_object)
+        
+        self.scene_response.scene.world.collision_objects = []
+        # intead of doing the above step, make sure to remove this one object and keep the rest
+        for obj_name, obj in self.scene_response.scene.world.collision_objects:
+            if obj_name != name:
+                self.scene_response.scene.world.collision_objects.append(obj)
+        
+        self.node.get_logger().info(f"{self.scene_response.scene}")
         response = await self.apply_scene.call_async(ApplyPlanningScene.Request(scene=self.scene_response.scene))
         return response
     
@@ -177,3 +216,11 @@ class PlanningScene:
         response = await self.apply_scene.call_async(ApplyPlanningScene.Request(scene=self.scene_response.scene))
         return response
     
+    async def get_collision_objects(self):
+        """
+        Return the current collision objects in the scene
+        :return: the list of collision objects
+        :rtype: [moveit_msgs.msg.CollisionObject]
+        """
+        self.scene_response = await self.get_scene.call_async(GetPlanningScene.Request())
+        return self.scene_response.scene.world.collision_objects

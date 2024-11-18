@@ -24,7 +24,7 @@ class MotionPlanningInterface:
         self.node = node
         self.planning_scene = PlanningScene(node = self.node)
         self.robot_state = CustomRobotState(node = self.node)
-        self.motion_planner = MotionPlanner(node = self.node, robot_state = self.robot_state)
+        self.motion_planner = MotionPlanner(node = self.node, robot_state = self.robot_state, planning_scene= self.planning_scene)
         self.path = MotionPlanRequest()
         
     async def plan_path(
