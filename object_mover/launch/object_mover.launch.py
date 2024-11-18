@@ -13,12 +13,12 @@ def generate_launch_description():
 
     return LaunchDescription([
         DeclareLaunchArgument(
-            'prod',
+            'debug',
             default_value='false',
             description='Boolean flag to indicuate production mode: true or false.'
         ),
         Node(package="rviz2",
-            condition=IfCondition(EqualsSubstitution(LaunchConfiguration('prod'), 'false')),
+            condition=IfCondition(EqualsSubstitution(LaunchConfiguration('debug'), 'true')),
             executable="rviz2",
             output="log",
             arguments=["-d", PathJoinSubstitution([FindPackageShare("franka_fer_moveit_config"), "config", "moveit.rviz"])],
