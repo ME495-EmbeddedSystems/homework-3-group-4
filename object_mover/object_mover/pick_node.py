@@ -1,3 +1,9 @@
+'''
+The pick node is a node that accomplishes the pick and place task of an object by the robotic arm. It directly
+interacts with MotionPlanningInterface to access the functions of the objects of MotionPlanner, RobotState and 
+PlanningScene incorporated within the MotionPlanningInterface class. 
+'''
+
 import time
 import rclpy
 from rclpy.node import Node
@@ -20,6 +26,9 @@ class State(Enum):
 
 
 class PickNode(Node):
+    '''
+    Node that interacts with the moveit API to conduct pick and place task with robot arm
+    '''
     def __init__(self):
         super().__init__('pick_node')
         self._cbgroup = MutuallyExclusiveCallbackGroup()
@@ -34,6 +43,14 @@ class PickNode(Node):
 
     # Maybe need to create custom service type for pick service as we want to be able to load multiple things to it
     async def pick_callback(self, request: PickPose, response):
+        '''
+        Callback function when pick service is triggered
+
+        :param request: service request object
+        :type request: object_mover_interfaces.srv.PickPose
+        :returns: response to service call
+        :rtype: bool
+        '''
         # For now I am assuming we are locating pose of object as the input to pick service 
         box_pose = Pose()
         box_pose.position.x = 0.59
