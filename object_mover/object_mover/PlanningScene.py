@@ -133,45 +133,6 @@ class PlanningScene:
         :return: the response of the service call
         :rtype: ApplyPlanningScene.Response
         """
-        
-        
-        #self.scene_response  = await self.get_scene.call_async(GetPlanningScene.Request())        
-        #if name in self.objects:
-        #    collision_object = self.objects[name]
-#
-        ## Remove non-attached collision objects
-        #for obj in self.scene_response.scene.world.collision_objects:
-        #    remove_obj = CollisionObject()
-        #    remove_obj.id = obj.id
-        #    remove_obj.operation = CollisionObject.REMOVE
-        #    remove_obj.header.stamp = self.node.get_clock().now().to_msg()
-        #    remove_obj.header.frame_id = obj.header.frame_id
-        #    self.collision_object_publisher.publish(remove_obj)
-#
-        #del self.objects[name]
-        ## Step 2: Re-add objects except the one to be removed
-        #for obj_name, obj in self.objects.items():
-        #    if obj_name != name:
-        #        self.collision_object_publisher.publish(obj)
-#
-        #attach_object = AttachedCollisionObject()
-        #attach_object.object = collision_object
-        #attach_object.link_name = 'fer_hand_tcp'
-        #attach_object.weight = 0.0
-        #attach_object.touch_links = ['fer_hand', 'fer_leftfinger', 'fer_rightfinger']
-        #self.attach_objects[name] = attach_object
-        #self.scene_response.scene.robot_state.attached_collision_objects.append(attach_object)
-        #self.attached_collision_object_publisher.publish(attach_object)
-        #
-        #self.scene_response.scene.world.collision_objects = []
-        ## intead of doing the above step, make sure to remove this one object and keep the rest
-        ##for obj_name, obj in self.objects.items():
-        ##    if obj_name != name:
-        ##        self.scene_response.scene.world.collision_objects.append(obj)
-#
-        #response = await self.apply_scene.call_async(ApplyPlanningScene.Request(scene=self.scene_response.scene))
-        #return response
-
         # Step 1: Get the planning scene
         current_scene: GetPlanningScene.Response = await self.get_scene.call_async(GetPlanningScene.Request())
 
