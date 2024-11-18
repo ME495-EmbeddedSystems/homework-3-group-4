@@ -72,7 +72,6 @@ class PickNode(Node):
         # Attaching box to arm in scene
         await self.mpi.planning_scene.attach_object('box')
         # Move arm to other side of obstacle
-        self.get_logger().info(f"{await self.mpi.planning_scene.get_collision_objects()}")
         pose4 = object_pose
         pose4.position.y = object_pose.position.y + 0.3
         plan = await self.mpi.plan_path(goal_pose= pose4)
