@@ -35,6 +35,7 @@ class RobotState:
             joint_state = self.joint_state
         request = GetPositionFK.Request()
         request.fk_link_names = link_names
+        # self.node.get_logger().info(link_names)
         request.robot_state.joint_state = joint_state
         fk_solution = await self.fk_client.call_async(request)    
         return fk_solution

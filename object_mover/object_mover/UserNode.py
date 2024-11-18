@@ -25,7 +25,7 @@ class UserNode(Node):
         super().__init__('user_node')
         self.get_logger().info('User Node initialized')
         self.robot_state = RobotState(self)
-        self.motion_planner = MotionPlanner(self, robot_state=self.robot_state)
+        self.motion_planner = MotionPlanner(node= self, planning_scene=None, robot_state=self.robot_state)
         self.joints = utils.robot_joints()
         self._cbgroup = MutuallyExclusiveCallbackGroup()
         self._server = ActionServer(self,
