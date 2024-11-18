@@ -173,7 +173,13 @@ class PlanningScene:
         attach_object.weight = 0.0
         self.scene_response.scene.robot_state.attached_collision_objects.append(attach_object)
         self.attached_collision_object_publisher.publish(attach_object)
+        
         self.scene_response.scene.world.collision_objects = []
+        # intead of doing the above step, make sure to remove this one object and keep the rest
+        for obj_name, obj in self.scene_response.scene.world.collision_objects:
+            if obj_name != name:
+                self.scene_response.scene.world.collision_objects.append(obj)
+        
         self.node.get_logger().info(f"{self.scene_response.scene}")
         response = await self.apply_scene.call_async(ApplyPlanningScene.Request(scene=self.scene_response.scene))
         return response
