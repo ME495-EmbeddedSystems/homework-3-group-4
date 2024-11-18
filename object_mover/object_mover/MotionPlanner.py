@@ -76,10 +76,12 @@ class MotionPlanner:
         move_group_goal.request = plan
         move_group_goal.planning_options.plan_only = False
 
+        # log planning options
+        self.node.get_logger().info('Planning options: {}'.format(move_group_goal.planning_options))
+
         goal_handle = await self.move_action_client.send_goal_async(move_group_goal)
         if not goal_handle.accepted:
             return False
-
         # print type of goal_handle
         result = await goal_handle.get_result_async()
         return result.result.error_code == 0
@@ -167,6 +169,7 @@ class MotionPlanner:
         computed_joint_constraints = populate_joint_constraints(ik_solution)
         path.goal_constraints = computed_joint_constraints
 
+        path.start_state.attached_collision_objects = self.planning_scene.attach_objects.values()
         if save_plan:
             self.save_plan(path, plan_name)
             
