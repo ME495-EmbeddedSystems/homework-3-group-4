@@ -188,6 +188,11 @@ class PlanningScene:
                     self.node.get_logger().error(f"Object with name {name} not found in the internal dictionary")
                 break
 
+        current_scene.scene.world.collision_objects = []
+        for object in collision_objects:
+            if object.id != name:
+                current_scene.scene.world.collision_objects.append(object)        
+                
         if collision_object:
             # Step 3: Attach the object to the end-effector
             attached_object = AttachedCollisionObject()
@@ -200,11 +205,18 @@ class PlanningScene:
             # Step 4: Add to the internal dictionary
             self.attach_objects[name] = attached_object
 
+            current_scene.scene.is_diff = True
             # Step 5: Apply the updated scene
             # log the current scene
             self.node.get_logger().info(f"Collision Objects: {current_scene.scene.world.collision_objects}")
             self.node.get_logger().info(f"Attached Objects: {current_scene.scene.robot_state.attached_collision_objects}")
-            response = await self.apply_scene.call_async(ApplyPlanningScene.Request(scene=current_scene.scene))
+            update_request = ApplyPlanningScene.Request()
+            update_request.scene = current_scene.scene
+            response = await self.apply_scene.call_async(update_request)
+
+            current_scene = await self.get_scene.call_async(GetPlanningScene.Request())
+            self.node.get_logger().info(f"{current_scene}")
+
             return response 
         # Case 2: Object is not found
         else:
@@ -249,5 +261,14 @@ class PlanningScene:
         :return: the list of collision objects
         :rtype: [moveit_msgs.msg.CollisionObject]
         """
-        self.scene_response = await self.get_scene.call_async(GetPlanningScene.Request())
-        return self.scene_response.scene.world.collision_objects
+        current_scene = await self.get_scene.call_async(GetPlanningScene.Request())
+        return current_scene.scene.world.collision_objects
+    
+    async def get_attached_collision_objects(self):
+        """
+        Return the list of attached collision objects
+        :return: the list of attached collision objects in the scene
+        :rtype: [moveit_msgs.msg.AttachedCollisionObject] 
+        """
+        current_scene = await self.get_scene.call_async(GetPlanningScene.Request())
+        return current_scene.scene.robot_state.attached_collision_objects

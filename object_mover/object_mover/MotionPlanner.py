@@ -74,10 +74,14 @@ class MotionPlanner:
         """
         move_group_goal = MoveGroup.Goal()
         move_group_goal.request = plan
+        move_group_goal.planning_options.planning_scene_diff.is_diff = True
+        move_group_goal.planning_options.planning_scene_diff.robot_state = plan.start_state
+        world_collision_objects = await self.planning_scene.get_collision_objects()
+        move_group_goal.planning_options.planning_scene_diff.world.collision_objects = world_collision_objects
         move_group_goal.planning_options.plan_only = False
 
         # log planning options
-        self.node.get_logger().info('Planning options: {}'.format(move_group_goal.planning_options))
+        # self.node.get_logger().info('Planning options: {}'.format(move_group_goal.planning_options))
 
         goal_handle = await self.move_action_client.send_goal_async(move_group_goal)
         if not goal_handle.accepted:
@@ -126,7 +130,7 @@ class MotionPlanner:
             self.save_plan(path, plan_name)
   
         if execute:
-            self.execute_plan(path)
+            await self.execute_plan(path)
 
         return path
 
@@ -169,12 +173,13 @@ class MotionPlanner:
         computed_joint_constraints = populate_joint_constraints(ik_solution)
         path.goal_constraints = computed_joint_constraints
 
-        path.start_state.attached_collision_objects = self.planning_scene.attach_objects.values()
+        attached_collision_objects = await self.planning_scene.get_attached_collision_objects()
+        path.start_state.attached_collision_objects = attached_collision_objects
         if save_plan:
             self.save_plan(path, plan_name)
             
         if execute:
-            self.execute_plan(path)
+           await self.execute_plan(path)
         return path
 
 
