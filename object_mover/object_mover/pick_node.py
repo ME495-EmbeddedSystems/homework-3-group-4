@@ -33,11 +33,6 @@ class PickNode(Node):
         super().__init__('pick_node')
         self._cbgroup = MutuallyExclusiveCallbackGroup()
         self.serv = self.create_service(PickPose, 'pick', self.pick_callback, callback_group=MutuallyExclusiveCallbackGroup())
-        self._server = ActionServer(self,
-                                    MoveGroup,
-                                    '/viz/move_action',
-                                    self.move_action_callback,
-                                    callback_group = self._cbgroup)
         self.state = State.STATIONARY
         self.mpi = MotionPlanningInterface(self)
 
