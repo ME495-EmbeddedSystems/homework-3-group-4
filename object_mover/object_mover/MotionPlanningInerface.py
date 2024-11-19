@@ -46,7 +46,7 @@ class MotionPlanningInterface:
         elif goal_pose is not None:
             self.path = await self.motion_planner.plan_pose_to_pose(
                 start_pose,
-                goal_pose
+                goal_pose, execute = True
             )
         elif waypoints is not None:
             self.path = await self.motion_planner.plan_cartesian_path(waypoints)

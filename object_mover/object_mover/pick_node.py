@@ -53,29 +53,31 @@ class PickNode(Node):
 
         pose1.position.z = object_pose.position.z + 0.4
         plan = await self.mpi.plan_path(goal_pose = pose1) 
-        await self.mpi.exec_path(path = plan)
+        # await self.mpi.exec_path(path = plan)
 
         await self.mpi.motion_planner.toggle_gripper('open')
 
         pose2 = object_pose
         plan = await self.mpi.plan_path(goal_pose = pose2)
-        await self.mpi.exec_path(path = plan)
+        # await self.mpi.exec_path(path = plan)
 
         await self.mpi.motion_planner.toggle_gripper('close')
         # Closing grippers
 
-        # Lifts object slighty off table
-        # pose3 = object_pose
-        # pose3.position.z = object_pose.position.z + 0.3
-        # plan = await self.mpi.plan_path(goal_pose = pose3)
-        # await self.mpi.exec_path(path = plan)
         # Attaching box to arm in scene
         await self.mpi.planning_scene.attach_object('box')
+
+        # Lifts object slighty off table
+        pose3 = object_pose
+        pose3.position.z = object_pose.position.z + 0.3
+        plan = await self.mpi.plan_path(goal_pose = pose3)
+        # await self.mpi.exec_path(path = plan)
         # Move arm to other side of obstacle
         pose4 = object_pose
         pose4.position.y = object_pose.position.y + 0.3
         plan = await self.mpi.plan_path(goal_pose= pose4)
-        await self.mpi.exec_path(path = plan)
+        #await self.mpi.exec_path(path = plan)
+        await self.mpi.motion_planner.toggle_gripper('open')
         # Drop object
         return response
 
