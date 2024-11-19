@@ -77,6 +77,7 @@ class PickNode(Node):
         pose4.position.y = object_pose.position.y + 0.3
         plan = await self.mpi.plan_path(goal_pose= pose4)
         #await self.mpi.exec_path(path = plan)
+        await self.mpi.motion_planner.toggle_gripper('open')
         # Drop object
         return response
 

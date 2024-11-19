@@ -102,7 +102,7 @@ class MotionPlanner:
         :rtype: moveit_msgs.msg.MotionPlanRequest
         """
         path = MotionPlanRequest()
-        # path.max_velocity_scaling_factor = 0.5
+        path.max_velocity_scaling_factor = 0.1
         path.start_state.joint_state = JointState()
 
         if start_joints:
@@ -146,7 +146,7 @@ class MotionPlanner:
         :rtype: moveit_msgs.msg.MotionPlanRequest
         """
         path = MotionPlanRequest()
-        # path.max_velocity_scaling_factor = 0.5
+        path.max_velocity_scaling_factor = 0.1
         path.group_name = 'fer_manipulator'
         current_state = self.get_current_robot_state()
 
