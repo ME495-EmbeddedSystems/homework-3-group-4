@@ -54,6 +54,9 @@ class MotionPlanningInterface:
         :returns: planned path
         :rtype: moveit_msgs.msg.MotionPlanRequest
         '''
+        # log the inputs
+        self.node.get_logger().info(f"Planning path with inputs: {start_joints}, {goal_joints}, {start_pose}, {goal_pose}, {waypoints}, {named_configuration}")
+        
         if goal_joints is not None:
             self.path = await self.motion_planner.plan_joint_path(goal_joints)
         elif goal_pose is not None:
@@ -63,7 +66,6 @@ class MotionPlanningInterface:
             )
         elif waypoints is not None:
             self.path = await self.motion_planner.plan_cartesian_path(waypoints)
-
         return self.path
 
     async def exec_path(self, path: MotionPlanRequest = None):
