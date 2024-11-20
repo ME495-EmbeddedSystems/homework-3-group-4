@@ -15,20 +15,14 @@ from launch.substitutions import PathJoinSubstitution, LaunchConfiguration
 
 from launch_ros.substitutions import FindPackageShare
 
+from object_mover.MotionPlanningInerface import MotionPlanningInterface
+
+
 from geometry_msgs.msg import Pose
 
 import pytest
 
 import rclpy
-
-import sys ,os
-
-from time import sleep
-
-root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-sys.path.insert(0, root_dir)
-
-from object_mover.MotionPlanningInerface import *
 
 @pytest.mark.launch_test
 def generate_test_description():
@@ -75,48 +69,27 @@ class TestPose(unittest.TestCase):
         self.node.get_logger().info("Node created")
 
         self.mpi = MotionPlanningInterface(self.node)
-
-        while (self.mpi.robot_state.joint_state is None):
-            print("Waiting for the joint states...")
-            rclpy.spin_once(self.node)
-
         self.node.get_logger().info("MPI created")
 
     def test_pose_achieved(self):
         """Test that the pose is achieved."""
-        
-        # {x: 0.5, y: 0.0, z: 0.5}, orientation: {x: 1.0, y: 0.0, z: 0.0, w: 0.0}
-
         object_pose = Pose()
-        object_pose.position.x = 0.4
-        object_pose.position.y = 0.0
-        object_pose.position.z = 0.5
-        object_pose.orientation.x = 1.0
-        object_pose.orientation.y = 0.0
-        object_pose.orientation.z = 0.0
-        object_pose.orientation.w = 0.0
+        object_pose.position.x = 0.59
+        object_pose.position.y = 0.13
+        object_pose.position.z = 0.1378
 
         ex = rclpy.get_global_executor()
         try:
             future = ex.create_task(self.mpi.plan_path(goal_pose = object_pose))
             rclpy.spin_until_future_complete(self.node, future, executor=ex)
-            
         except Exception as e:
             print(e)
-            self.tearDown()
             return
-        
         result = future.result()
-
-        assert result.val == 1
+        assert result.done()
+        result = result.result()
+        assert result == 1
 
     def tearDown(self):
         self.node.destroy_node()
 
-
-# # generate_test_description()
-# t = TestPose()
-# t.setUpClass()
-# t.setUp()
-# t.test_pose_achieved()
-# t.tearDown()
