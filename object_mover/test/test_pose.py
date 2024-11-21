@@ -104,6 +104,8 @@ class TestPose(unittest.TestCase):
 
         result = future.result()
 
+
+        # SUCCESS=1 ?
         assert result.val == 1
 
     def tearDown(self):
