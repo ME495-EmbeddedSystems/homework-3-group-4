@@ -56,8 +56,9 @@ class MotionPlanner:
         self.node.action_client = ActionClient(self.node,
                                                MoveGroup,
                                                'move_action',
-                                               callback_group=rclpy.callback_groups.MutuallyExclusiveCallbackGroup()
-                                               )
+                                               callback_group=(
+                                                   rclpy.callback_groups.MutuallyExclusiveCallbackGroup()
+                                               ))
 
         if not self.move_action_client.wait_for_server(timeout_sec=10):
             raise RuntimeError('MoveGroup action server not ready')
@@ -212,7 +213,7 @@ class MotionPlanner:
                                     path_constraints: Constraints = Constraints()
                                     ) -> GetCartesianPath.Request:
         """
-        Gets the Cartesian path request to send to /compute_cartesian_path.
+        Get the Cartesian path request to send to /compute_cartesian_path.
 
         :param waypoints: A list of poses that define the Cartesian path.
         :type waypoints: List[geometry_msgs.msg.Pose]
