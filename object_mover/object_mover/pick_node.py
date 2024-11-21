@@ -33,11 +33,6 @@ class PickNode(Node):
         super().__init__('pick_node')
         self._cbgroup = MutuallyExclusiveCallbackGroup()
         self.serv = self.create_service(PickPose, 'pick', self.pick_callback, callback_group=MutuallyExclusiveCallbackGroup())
-        self._server = ActionServer(self,
-                                    MoveGroup,
-                                    '/viz/move_action',
-                                    self.move_action_callback,
-                                    callback_group = self._cbgroup)
         self.state = State.STATIONARY
         self.mpi = MotionPlanningInterface(self)
 
@@ -97,16 +92,6 @@ class PickNode(Node):
         await self.mpi.motion_planner.toggle_gripper('open')
         # Drop object
         return response
-
-    async def move_action_callback(self, goal_handle):
-        self.get_logger().info("Move Action Called. Goal Is")
-        # self.get_logger().info(f"{goal_handle.request}") # Do more to format this output nicelynicely
-        self.get_logger().info(f"--- End ofrequest dump.----\n")
-        self.get_logger().info("Forwarding the action to the move_group action server")
-       
-        self.get_logger().info("Awaiting the result")
-        self.get_logger().info("Interception successful, returning the result")
-        return
 
 
 def pick_entry(args=None):
