@@ -76,11 +76,6 @@ class TestPose(unittest.TestCase):
         # Wait for Moveit to launch
         sleep(20)
         self.node = rclpy.create_node("test_node")
-        self.node.get_logger().info("Node created")
-        self.pub = self.node.create_publisher(
-                                    String ,
-                                   "debug",
-                                   10)
 
         self.mpi = MotionPlanningInterface(self.node)
 
@@ -88,16 +83,6 @@ class TestPose(unittest.TestCase):
             # print("Waiting for the joint states...")
             rclpy.spin_once(self.node)
    
-
-        self.node.get_logger().info("MPI created")
-    
-    def log(self, str):
-
-        msg = String()
-        msg.data = str
-        self.pub.publish(msg)
-        rclpy.spin_once(self.node)
-
     def test_pose_achieved(self):
         """Test that the pose is achieved."""
         
@@ -114,37 +99,12 @@ class TestPose(unittest.TestCase):
 
         ex = rclpy.get_global_executor()
 
-        ("Creating task")
-
         future = ex.create_task(self.mpi.plan_path(goal_pose = object_pose))
         rclpy.spin_until_future_complete(self.node, future, executor=ex)
 
         result = future.result()
-        self.log(str(result.val))
-        
-        for i in range (3):
-            if (result.val != 1):
-                self.log(f"Trying.., # {i+1}")
-                future = ex.create_task(self.mpi.plan_path(goal_pose = object_pose))
-                rclpy.spin_until_future_complete(self.node, future, executor=ex)
-                self.log("Result: " + str(result.val))
-                rclpy.spin_once(self.node)
-                sleep(3)
-
-        future = ex.create_task(self.mpi.robot_state.compute_FK(joint_state=self.mpi.robot_state.joint_state , link_names=['fer_hand_tcp']))
-        rclpy.spin_until_future_complete(self.node, future, executor=ex)
-
-        pose = future.result().pose_stamped[0].pose.position
-        self.log(f"x: {pose.x:.2f}, y: {pose.y:.2f}, z: {pose.z:.2f}")
 
         assert result.val == 1
 
     def tearDown(self):
         self.node.destroy_node()
-
-# # generate_test_description()
-# t = TestPose()
-# t.setUpClass()
-# t.setUp()
-# t.test_pose_achieved()
-# t.tearDown()
