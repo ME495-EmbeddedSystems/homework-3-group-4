@@ -210,7 +210,7 @@ class PlanningScene:
                 if obj.object.id == name:
                     detach_object = obj
             self.scene_response.scene.world.collision_objects.append(detach_object.object)
-        except:
+        except BaseException:
             self.node.get_logger().info(
                 '-------------The object is not found in the attached objects------------------'
                 )

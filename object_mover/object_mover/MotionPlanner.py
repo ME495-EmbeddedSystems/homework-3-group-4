@@ -57,8 +57,11 @@ class MotionPlanner:
                                                MoveGroup,
                                                'move_action',
                                                callback_group=(
-                                                   rclpy.callback_groups.MutuallyExclusiveCallbackGroup()
-                                               ))
+                                                    rclpy.
+                                                    callback_groups.
+                                                    MutuallyExclusiveCallbackGroup()
+                                               )
+                                               )
 
         if not self.move_action_client.wait_for_server(timeout_sec=10):
             raise RuntimeError('MoveGroup action server not ready')
@@ -96,7 +99,9 @@ class MotionPlanner:
         move_group_goal.planning_options.planning_scene_diff.is_diff = True
         move_group_goal.planning_options.planning_scene_diff.robot_state = plan.start_state
         world_collision_objects = await self.planning_scene.get_collision_objects()
-        move_group_goal.planning_options.planning_scene_diff.world.collision_objects = world_collision_objects
+        move_group_goal.planning_options.planning_scene_diff.world.collision_objects = (
+            world_collision_objects
+        )
         move_group_goal.planning_options.plan_only = False
 
         goal_handle = await self.move_action_client.send_goal_async(move_group_goal)
@@ -299,7 +304,7 @@ class MotionPlanner:
 
     def _execute_trajectory_response_callback(self, future):
         """
-        Callback for ExecuteTrajectory action completion.
+        Handle completion of the ExecuteTrajectory action.
 
         :param future: The completed future object.
         :type future: Future (?)
