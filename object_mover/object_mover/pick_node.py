@@ -93,16 +93,6 @@ class PickNode(Node):
         # Drop object
         return response
 
-    async def move_action_callback(self, goal_handle):
-        self.get_logger().info("Move Action Called. Goal Is")
-        # self.get_logger().info(f"{goal_handle.request}") # Do more to format this output nicelynicely
-        self.get_logger().info(f"--- End ofrequest dump.----\n")
-        self.get_logger().info("Forwarding the action to the move_group action server")
-       
-        self.get_logger().info("Awaiting the result")
-        self.get_logger().info("Interception successful, returning the result")
-        return
-
 
 def pick_entry(args=None):
     '''main function'''
