@@ -1,3 +1,5 @@
+from typing import List
+
 from geometry_msgs.msg import PoseStamped
 
 from moveit_msgs.msg import RobotState as MoveitRobotState
@@ -7,11 +9,10 @@ from rclpy.node import Node
 
 from sensor_msgs.msg import JointState
 
-from typing import List
-
 
 class RobotState:
     """Class that can compute forward or inverse kinematics of the robot."""
+
     def __init__(self, node: Node):
         self.node = node
         self.joint_state_sub = self.node.create_subscription(
@@ -29,12 +30,12 @@ class RobotState:
         """
         self.joint_state = msg
 
-    async def compute_IK(self,  
-                         goal_pose: PoseStamped, 
-                         joint_state: JointState = None, 
+    async def compute_IK(self,
+                         goal_pose: PoseStamped,
+                         joint_state: JointState = None,
                          group_name: str = 'fer_manipulator'):
         """
-        Computes inverse kinematics of the system.
+        Compute inverse kinematics of the system.
 
         :param goal_pose: goal position of end-effector
         :type goal_pose: geometry_msgs.msg.PoseStamped
@@ -57,8 +58,8 @@ class RobotState:
 
     async def compute_FK(self, link_names: List[str], joint_state: JointState = None):
         """
-        Computes forward kinematics of the system or from current configuration
-         
+        Compute forward kinematics of the system or from current configuration.
+
         :param link_names: link  names to compute FK for
         :type link_names: list[string]
         :param joint_state: joint states of robot
@@ -71,7 +72,7 @@ class RobotState:
         request = GetPositionFK.Request()
         request.fk_link_names = link_names
         request.robot_state.joint_state = joint_state
-        fk_solution = await self.fk_client.call_async(request)    
+        fk_solution = await self.fk_client.call_async(request)
         return fk_solution
 
     def get_robot_state(self) -> MoveitRobotState:
@@ -84,4 +85,3 @@ class RobotState:
         robot_state = MoveitRobotState()
         robot_state.joint_state = self.joint_state
         return robot_state
-
