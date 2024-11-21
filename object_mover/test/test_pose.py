@@ -27,13 +27,15 @@ from time import sleep
 
 root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.insert(0, root_dir)
+from std_msgs.msg import String
+
 
 from object_mover.MotionPlanningInerface import *
 
 @pytest.mark.launch_test
 def generate_test_description():
     """Launch the nodes under test."""
-
+    
     # Here we launch the frand the move group
     return LaunchDescription([
         # Launch the launch file demo.launch.py
@@ -71,16 +73,30 @@ class TestPose(unittest.TestCase):
 
     def setUp(self):
         """Setup the test."""
+        # Wait for Moveit to launch
+        sleep(20)
         self.node = rclpy.create_node("test_node")
         self.node.get_logger().info("Node created")
+        self.pub = self.node.create_publisher(
+                                    String ,
+                                   "debug",
+                                   10)
 
         self.mpi = MotionPlanningInterface(self.node)
 
         while (self.mpi.robot_state.joint_state is None):
-            print("Waiting for the joint states...")
+            # print("Waiting for the joint states...")
             rclpy.spin_once(self.node)
+   
 
         self.node.get_logger().info("MPI created")
+    
+    def log(self, str):
+
+        msg = String()
+        msg.data = str
+        self.pub.publish(msg)
+        rclpy.spin_once(self.node)
 
     def test_pose_achieved(self):
         """Test that the pose is achieved."""
@@ -97,22 +113,34 @@ class TestPose(unittest.TestCase):
         object_pose.orientation.w = 0.0
 
         ex = rclpy.get_global_executor()
-        try:
-            future = ex.create_task(self.mpi.plan_path(goal_pose = object_pose))
-            rclpy.spin_until_future_complete(self.node, future, executor=ex)
-            
-        except Exception as e:
-            print(e)
-            self.tearDown()
-            return
-        
+
+        ("Creating task")
+
+        future = ex.create_task(self.mpi.plan_path(goal_pose = object_pose))
+        rclpy.spin_until_future_complete(self.node, future, executor=ex)
+
         result = future.result()
+        self.log(str(result.val))
+        
+        for i in range (3):
+            if (result.val != 1):
+                self.log(f"Trying.., # {i+1}")
+                future = ex.create_task(self.mpi.plan_path(goal_pose = object_pose))
+                rclpy.spin_until_future_complete(self.node, future, executor=ex)
+                self.log("Result: " + str(result.val))
+                rclpy.spin_once(self.node)
+                sleep(3)
+
+        future = ex.create_task(self.mpi.robot_state.compute_FK(joint_state=self.mpi.robot_state.joint_state , link_names=['fer_hand_tcp']))
+        rclpy.spin_until_future_complete(self.node, future, executor=ex)
+
+        pose = future.result().pose_stamped[0].pose.position
+        self.log(f"x: {pose.x:.2f}, y: {pose.y:.2f}, z: {pose.z:.2f}")
 
         assert result.val == 1
 
     def tearDown(self):
         self.node.destroy_node()
-
 
 # # generate_test_description()
 # t = TestPose()
