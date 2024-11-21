@@ -3,11 +3,7 @@ import unittest
 
 from launch import LaunchDescription
 
-from launch_ros.actions import Node as LaunchNode
-
 from launch.actions import IncludeLaunchDescription, DeclareLaunchArgument
-
-from launch.launch_description_sources import PythonLaunchDescriptionSource
 
 from launch_testing.actions import ReadyToTest
 
