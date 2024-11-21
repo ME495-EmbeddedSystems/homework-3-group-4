@@ -21,21 +21,14 @@ import pytest
 
 import rclpy
 
-import sys ,os
-
 from time import sleep
-
-root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-sys.path.insert(0, root_dir)
-from std_msgs.msg import String
-
 
 from object_mover.MotionPlanningInerface import *
 
 @pytest.mark.launch_test
 def generate_test_description():
     """Launch the nodes under test."""
-    
+
     # Here we launch the frand the move group
     return LaunchDescription([
         # Launch the launch file demo.launch.py
@@ -82,12 +75,9 @@ class TestPose(unittest.TestCase):
         while (self.mpi.robot_state.joint_state is None):
             # print("Waiting for the joint states...")
             rclpy.spin_once(self.node)
-   
+
     def test_pose_achieved(self):
         """Test that the pose is achieved."""
-        
-        # {x: 0.5, y: 0.0, z: 0.5}, orientation: {x: 1.0, y: 0.0, z: 0.0, w: 0.0}
-
         object_pose = Pose()
         object_pose.position.x = 0.4
         object_pose.position.y = 0.0
@@ -104,8 +94,7 @@ class TestPose(unittest.TestCase):
 
         result = future.result()
 
-
-        # SUCCESS=1 ?
+        # SUCCESS=1
         assert result.val == 1
 
     def tearDown(self):
