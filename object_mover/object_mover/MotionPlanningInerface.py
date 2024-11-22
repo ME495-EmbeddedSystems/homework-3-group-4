@@ -23,7 +23,6 @@ class MotionPlanningInterface:
                                             robot_state=self.robot_state,
                                             planning_scene=self.planning_scene
                                             )
-        self.path = MotionPlanRequest()
 
     async def plan_path(
         self,
@@ -53,16 +52,20 @@ class MotionPlanningInterface:
         :rtype: moveit_msgs.msg.MotionPlanRequest
         """
         if goal_joints is not None:
-            self.path = await self.motion_planner.plan_joint_path(goal_joints)
+            path = await self.motion_planner.plan_joint_path(
+                start_joints=start_joints,
+                goal_joints=goal_joints,
+                execute=True
+            )
         elif goal_pose is not None:
-            self.path = await self.motion_planner.plan_pose_to_pose(
+            path = await self.motion_planner.plan_pose_to_pose(
                 start_pose,
                 goal_pose, execute=True
             )
         elif waypoints is not None:
-            self.path = await self.motion_planner.plan_cartesian_path(waypoints)
+            path = await self.motion_planner.plan_cartesian_path(waypoints)
 
-        return self.path
+        return path
 
     async def exec_path(self, path: MotionPlanRequest = None):
         """

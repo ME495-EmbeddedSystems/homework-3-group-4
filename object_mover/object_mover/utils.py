@@ -16,9 +16,17 @@ def robot_joints() -> list[str]:
         'fer_joint5',
         'fer_joint6',
         'fer_joint7',
-        'fer_finger)joint1',
-        'fer_finger_joint2',
+        'fer_finger_joint1',
+        'fer_finger_joint2'
     ]
+
+def home_joint_positions() -> list[float]:
+    """
+    Return the list of home joint positions.
+
+    :returns: The list of home joint positions.
+    """
+    return [0.0, -0.7853981633974483, 0.0, -2.356194490192345, 0.0, 1.5707963267948966, 0.7853981633974483, 0.0, 0.0]
 
 
 def populate_joint_constraints(ik_solution: RobotState) -> list[Constraints]:
@@ -44,7 +52,7 @@ def populate_joint_constraints(ik_solution: RobotState) -> list[Constraints]:
     return [computed_joint_constraints]
 
 
-def populate_gripper_constraints(gripper_configuration: str):
+def populate_gripper_constraints(gripper_configuration: str) -> list[Constraints]:
     """Populate the MotionPlanRequest.goal_constraints for opening and closing the gripper."""
     goal_constraints = [Constraints()]
     if gripper_configuration == 'open':

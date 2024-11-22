@@ -79,9 +79,6 @@ class PlanningScene:
         # Fetch the current planning scene
         self.scene_response = await self.get_scene.call_async(GetPlanningScene.Request())
 
-        # Step 1: Clear all collision objects and attached objects
-        self.node.get_logger().info('Clearing all collision objects...')
-
         # Remove non-attached collision objects
         for obj in self.scene_response.scene.world.collision_objects:
             remove_obj = CollisionObject()
@@ -102,7 +99,6 @@ class PlanningScene:
             self.attached_collision_object_publisher.publish(remove_attached_obj)
 
         self.scene_response = await self.get_scene.call_async(GetPlanningScene.Request())
-        self.node.get_logger().info('Re-adding objects except the one to be removed...')
 
         # Step 2: Re-add objects except the one to be removed
         for obj_name, obj in self.objects.items():
@@ -121,11 +117,6 @@ class PlanningScene:
 
         # Verify that the object was removed successfully
         self.scene_response = await self.get_scene.call_async(GetPlanningScene.Request())
-        self.node.get_logger().info(
-            f'Objects remaining: {[
-                obj.id for obj in self.scene_response.scene.world.collision_objects]
-                }'
-            )
 
     async def attach_object(self, name):
         """
@@ -139,7 +130,7 @@ class PlanningScene:
         # Step 1: Get the planning scene
         current_scene: GetPlanningScene.Response = await self.get_scene.call_async(
             GetPlanningScene.Request()
-            )
+        )
 
         # Step 2: Find the object with the given name in the current_scene world collision objects
         collision_objects: List[CollisionObject] = current_scene.scene.world.collision_objects
@@ -176,18 +167,11 @@ class PlanningScene:
             current_scene.scene.is_diff = True
             # Step 5: Apply the updated scene
             # log the current scene
-            self.node.get_logger().info(
-                f'Collision Objects: {current_scene.scene.world.collision_objects}'
-                )
-            self.node.get_logger().info(
-                f'Attached Objects: {current_scene.scene.robot_state.attached_collision_objects}'
-                )
             update_request = ApplyPlanningScene.Request()
             update_request.scene = current_scene.scene
             response = await self.apply_scene.call_async(update_request)
 
             current_scene = await self.get_scene.call_async(GetPlanningScene.Request())
-            self.node.get_logger().info(f'{current_scene}')
 
             return response
         # Case 2: Object is not found
@@ -217,7 +201,7 @@ class PlanningScene:
         self.scene_response.scene.robot_state.attached_collision_objects.remove(detach_object)
         response = await self.apply_scene.call_async(
             ApplyPlanningScene.Request(scene=self.scene_response.scene)
-            )
+        )
         return response
 
     async def clear_scene(self):

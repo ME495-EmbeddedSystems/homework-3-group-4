@@ -9,6 +9,7 @@ from rclpy.node import Node
 
 from sensor_msgs.msg import JointState
 
+from object_mover.utils import robot_joints, home_joint_positions
 
 class RobotState:
     """Class that can compute forward or inverse kinematics of the robot."""
@@ -20,6 +21,7 @@ class RobotState:
         self.fk_client = self.node.create_client(GetPositionFK, '/compute_fk')
         self.ik_client = self.node.create_client(GetPositionIK, '/compute_ik')
         self.joint_state = None
+        self.home_joint_state = dict(zip(robot_joints(), home_joint_positions()))
 
     def joint_state_callback(self, msg):
         """
