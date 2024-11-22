@@ -138,7 +138,7 @@ class MotionPlanner:
         execute: bool = False,
         save_plan: bool = False,
         plan_name: str = 'recent',
-    ) -> MotionPlanRequest:
+    ):
         """
         Plan a path from a valid starting joint configuration to a valid goal joint configuration.
 
@@ -266,12 +266,8 @@ class MotionPlanner:
             self.save_plan(path, plan_name)
 
         if execute:
-<<<<<<< HEAD
-            await self.execute_plan(path)
-=======
            result = await self.execute_plan(path)
            return result
->>>>>>> david/franka-pose-testing
         return path
 
     def _get_cartesian_path_request(

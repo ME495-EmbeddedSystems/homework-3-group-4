@@ -19,7 +19,7 @@ import rclpy
 
 from time import sleep
 
-from object_mover.MotionPlanningInerface import *
+from object_mover.MotionPlanningInterface import *
 
 @pytest.mark.launch_test
 def generate_test_description():

@@ -21,7 +21,7 @@ MotionPlanner, RobotState and PlanningScene incorporated within the MotionPlanni
 import copy
 
 from geometry_msgs.msg import Pose
-from object_mover.MotionPlanningInerface import MotionPlanningInterface
+from object_mover.MotionPlanningInterface import MotionPlanningInterface
 from object_mover_interfaces.srv import PickPose
 import rclpy
 from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
