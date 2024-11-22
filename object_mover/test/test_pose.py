@@ -1,30 +1,36 @@
-"""Test launch file to verify that pose is achieved when moving from one pose to another"""
+# Copyright 2024 David davidkh@u.northwestern.edu
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+"""Test launch file to verify that pose is achieved when moving from one pose to another."""
+from time import sleep
 import unittest
-
-from launch import LaunchDescription
-
-from launch.actions import IncludeLaunchDescription, DeclareLaunchArgument
-
-from launch_testing.actions import ReadyToTest
-
-from launch.substitutions import PathJoinSubstitution, LaunchConfiguration
-
-from launch_ros.substitutions import FindPackageShare
 
 from geometry_msgs.msg import Pose
 
-import pytest
+from launch import LaunchDescription
+from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
+from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
+from launch_ros.substitutions import FindPackageShare
+from launch_testing.actions import ReadyToTest
 
+from object_mover.MotionPlanningInterface import MotionPlanningInterface
+import pytest
 import rclpy
 
-from time import sleep
-
-from object_mover.MotionPlanningInterface import *
 
 @pytest.mark.launch_test
 def generate_test_description():
     """Launch the nodes under test."""
-
     # Here we launch the frand the move group
     return LaunchDescription([
         # Launch the launch file demo.launch.py
@@ -37,9 +43,9 @@ def generate_test_description():
         IncludeLaunchDescription(
             PathJoinSubstitution(
                 [
-                    FindPackageShare("franka_fer_moveit_config"),
-                    "launch/"
-                    "demo.launch.py"
+                    FindPackageShare('franka_fer_moveit_config'),
+                    'launch/'
+                    'demo.launch.py'
                 ]
             ),
             launch_arguments={'use_rviz': LaunchConfiguration('use_rviz')}.items()
@@ -49,10 +55,11 @@ def generate_test_description():
 
 
 class TestPose(unittest.TestCase):
-    """Test the pose of the robot arm"""
+    """Test the pose of the robot arm."""
+
     @classmethod
     def setUpClass(cls):
-        """Setup the test class."""
+        """Initialize the test class."""
         rclpy.init()
 
     @classmethod
@@ -61,10 +68,10 @@ class TestPose(unittest.TestCase):
         rclpy.shutdown()
 
     def setUp(self):
-        """Setup the test."""
+        """Initialize the test."""
         # Wait for Moveit to launch
-        sleep(20)
-        self.node = rclpy.create_node("test_node")
+        sleep(10)
+        self.node = rclpy.create_node('test_node')
 
         self.mpi = MotionPlanningInterface(self.node)
 
@@ -85,7 +92,7 @@ class TestPose(unittest.TestCase):
 
         ex = rclpy.get_global_executor()
 
-        future = ex.create_task(self.mpi.plan_path(goal_pose = object_pose))
+        future = ex.create_task(self.mpi.plan_path(goal_pose=object_pose))
         rclpy.spin_until_future_complete(self.node, future, executor=ex)
 
         result = future.result()

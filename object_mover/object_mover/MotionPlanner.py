@@ -266,8 +266,8 @@ class MotionPlanner:
             self.save_plan(path, plan_name)
 
         if execute:
-           result = await self.execute_plan(path)
-           return result
+            result = await self.execute_plan(path)
+            return result
         return path
 
     def _get_cartesian_path_request(
