@@ -282,7 +282,8 @@ class MotionPlanner:
         request.header = Header(stamp=stamp, frame_id='base')
 
         request.group_name = 'fer_arm'
-
+        request.max_velocity_scaling_factor = 0.1
+        request.max_acceleration_scaling_factor = 0.1
         request.waypoints = waypoints
 
         request.max_step = max_step
@@ -360,6 +361,9 @@ class MotionPlanner:
         :rtype: moveit_msgs.msg.MotionPlanRequest
         """
         path = MotionPlanRequest()
+        path.allowed_planning_time = 20.0
+        path.max_velocity_scaling_factor = 0.1
+        path.max_acceleration_scaling_factor = 0.1
         path.group_name = 'hand'
         current_state = self.get_current_robot_state()
         path.start_state = current_state
