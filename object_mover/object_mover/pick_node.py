@@ -78,7 +78,7 @@ class PickNode(Node):
         wall_pose.position.y = 0.3
         wall_pose.position.z = 0.0
         await self.mpi.planning_scene.add_collision_objects(
-            'wall', wall_pose, [0.05, 0.05, 1.0]
+            'wall', wall_pose, [0.05, 0.05, 0.5]
         )
 
         # Plan path to pick object

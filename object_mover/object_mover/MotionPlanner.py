@@ -14,7 +14,7 @@
 from typing import Dict, List, Optional
 
 from builtin_interfaces.msg import Time
-from geometry_msgs.msg import Pose
+from geometry_msgs.msg import Pose, Vector3
 from moveit_msgs.action import ExecuteTrajectory, MoveGroup
 from moveit_msgs.msg import (
     Constraints,
@@ -22,6 +22,7 @@ from moveit_msgs.msg import (
     MotionPlanRequest,
     RobotState,
     RobotTrajectory,
+    WorkspaceParameters
 )
 from moveit_msgs.srv import GetCartesianPath
 
@@ -137,7 +138,7 @@ class MotionPlanner:
         execute: bool = False,
         save_plan: bool = False,
         plan_name: str = 'recent',
-    ) -> MotionPlanRequest:  # noqa 501
+    ) -> MotionPlanRequest:
         """
         Plan a path from a valid starting joint configuration to a valid goal joint configuration.
 
@@ -149,11 +150,19 @@ class MotionPlanner:
         :rtype: moveit_msgs.msg.MotionPlanRequest
         """
         path = MotionPlanRequest()
+        path.workspace_parameters = WorkspaceParameters(
+            header=Header(
+                stamp=self.node.get_clock().now().to_msg(),
+                frame_id='fer_link0'
+            ),
+            min_corner=Vector3(x=-2.0, y=-2.0, z=0.0),
+            max_corner=Vector3(x=2.0, y=2.0, z=2.0)
+        )
         path.max_velocity_scaling_factor = 0.1
-        path.allowed_planning_time = 20.0
+        path.allowed_planning_time = 30.0
         path.max_acceleration_scaling_factor
         path.start_state.joint_state = JointState()
-
+        path.planner_id = 'move_group'
         if start_joints:
             path.start_state.joint_state.position = start_joints
 
@@ -202,9 +211,18 @@ class MotionPlanner:
         :rtype: moveit_msgs.msg.MotionPlanRequest
         """
         path = MotionPlanRequest()
+        path.workspace_parameters = WorkspaceParameters(
+            header=Header(
+                stamp=self.node.get_clock().now().to_msg(),
+                frame_id='fer_link0'
+            ),
+            min_corner=Vector3(x=-2.0, y=-2.0, z=0.0),
+            max_corner=Vector3(x=2.0, y=2.0, z=2.0)
+        )
         path.max_velocity_scaling_factor = 0.1
-        path.allowed_planning_time = 20.0
+        path.allowed_planning_time = 30.0
         path.max_acceleration_scaling_factor = 0.1
+        path.planner_id = 'move_group'
         path.group_name = 'fer_manipulator'
         current_state = self.get_current_robot_state()
 
@@ -280,7 +298,7 @@ class MotionPlanner:
         stamp.sec = int(stamp.nanosec // 1.0e9)
 
         request.header = Header(stamp=stamp, frame_id='base')
-
+        request.link_name = 'fer_hand_tcp'
         request.group_name = 'fer_arm'
         request.max_velocity_scaling_factor = 0.1
         request.max_acceleration_scaling_factor = 0.1
