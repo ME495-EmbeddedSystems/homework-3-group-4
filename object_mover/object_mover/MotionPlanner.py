@@ -1,13 +1,28 @@
+# Copyright 2024 David davidkh@u.northwestern.edu
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 from typing import Dict, List, Optional
 
 from builtin_interfaces.msg import Time
 from geometry_msgs.msg import Pose
 from moveit_msgs.action import ExecuteTrajectory, MoveGroup
-from moveit_msgs.msg import (Constraints,
-                             JointConstraint,
-                             MotionPlanRequest,
-                             RobotState,
-                             RobotTrajectory)
+from moveit_msgs.msg import (
+    Constraints,
+    JointConstraint,
+    MotionPlanRequest,
+    RobotState,
+    RobotTrajectory,
+)
 from moveit_msgs.srv import GetCartesianPath
 
 from object_mover.PlanningScene import PlanningScene as CustomPlanningScene
@@ -37,31 +52,33 @@ class MotionPlanner:
     ----------
     client : ActionClient
         The action client used to communicate with the MoveIt action server.
+
     """
 
-    def __init__(self, node: Node,
-                 robot_state: CustomRobotState,
-                 planning_scene: CustomPlanningScene
-                 ):
+    def __init__(
+        self,
+        node: Node,
+        robot_state: CustomRobotState,
+        planning_scene: CustomPlanningScene,
+    ):
         """Initialize the MotionPlanner class."""
         self.node = node
         self.robot_state = robot_state
         self.planning_scene = planning_scene
-        self.move_action_client = ActionClient(self.node,
-                                               MoveGroup,
-                                               'move_action',
-                                               callback_group=MutuallyExclusiveCallbackGroup())
+        self.move_action_client = ActionClient(
+            self.node,
+            MoveGroup,
+            'move_action',
+            callback_group=MutuallyExclusiveCallbackGroup(),
+        )
         self.saved_plans = {}
         self.saved_configurations = {}
-        self.node.action_client = ActionClient(self.node,
-                                               MoveGroup,
-                                               'move_action',
-                                               callback_group=(
-                                                    rclpy.
-                                                    callback_groups.
-                                                    MutuallyExclusiveCallbackGroup()
-                                               )
-                                               )
+        self.node.action_client = ActionClient(
+            self.node,
+            MoveGroup,
+            'move_action',
+            callback_group=(rclpy.callback_groups.MutuallyExclusiveCallbackGroup()),
+        )
 
         if not self.move_action_client.wait_for_server(timeout_sec=10):
             raise RuntimeError('MoveGroup action server not ready')
@@ -72,14 +89,14 @@ class MotionPlanner:
         self.plan_cart_path_client = self.node.create_client(
             srv_name='/compute_cartesian_path',
             srv_type=GetCartesianPath,
-            callback_group=MutuallyExclusiveCallbackGroup()
+            callback_group=MutuallyExclusiveCallbackGroup(),
         )
 
         # Client for the execuate trajectory action
         self.execute_trajectory_client = ActionClient(
             node=self.node,
             action_name='/execute_trajectory',
-            action_type=ExecuteTrajectory
+            action_type=ExecuteTrajectory,
         )
 
         if not self.execute_trajectory_client.wait_for_server(timeout_sec=10):
@@ -97,7 +114,9 @@ class MotionPlanner:
         move_group_goal = MoveGroup.Goal()
         move_group_goal.request = plan
         move_group_goal.planning_options.planning_scene_diff.is_diff = True
-        move_group_goal.planning_options.planning_scene_diff.robot_state = plan.start_state
+        move_group_goal.planning_options.planning_scene_diff.robot_state = (
+            plan.start_state
+        )
         world_collision_objects = await self.planning_scene.get_collision_objects()
         move_group_goal.planning_options.planning_scene_diff.world.collision_objects = (
             world_collision_objects
@@ -111,7 +130,14 @@ class MotionPlanner:
         result = await goal_handle.get_result_async()
         return result.result.error_code == 0
 
-    async def plan_joint_path(self, start_joints: Optional[List[float]], goal_joints: Dict[str, float], execute: bool = False, save_plan: bool = False, plan_name: str = 'recent') -> MotionPlanRequest: # noqa 501
+    async def plan_joint_path(
+        self,
+        start_joints: Optional[List[float]],
+        goal_joints: Dict[str, float],
+        execute: bool = False,
+        save_plan: bool = False,
+        plan_name: str = 'recent',
+    ) -> MotionPlanRequest:  # noqa 501
         """
         Plan a path from a valid starting joint configuration to a valid goal joint configuration.
 
@@ -142,7 +168,7 @@ class MotionPlanner:
                 position=angle,
                 tolerance_below=0.0001,
                 tolerance_above=0.0001,
-                weight=1.0
+                weight=1.0,
             )
             for joint, angle in goal_joints.items()
         ]
@@ -156,11 +182,13 @@ class MotionPlanner:
         return path
 
     async def plan_pose_to_pose(
-            self, start_pose: Optional[Pose],
-            goal_pose: Optional[Pose],
-            execute: bool = False,
-            save_plan: bool = False,
-            plan_name: str = 'recent'):
+        self,
+        start_pose: Optional[Pose],
+        goal_pose: Optional[Pose],
+        execute: bool = False,
+        save_plan: bool = False,
+        plan_name: str = 'recent',
+    ):
         """
         Plan a path from a starting pose to a goal pose.
 
@@ -181,29 +209,35 @@ class MotionPlanner:
         else:
             start_state_ik_solution = await CustomRobotState.compute_IK(
                 self.robot_state, start_pose, 'fer_manipulator'
-                )
+            )
             path.start_state = start_state_ik_solution.solution
 
         if not goal_pose.position:
             # Fill out the goal_pose.position with the current position
             # To get the current position, we will need to call the compute_FK function
-            fk_solution = await CustomRobotState.compute_FK(self.robot_state, ['fer_hand_tcp'])
+            fk_solution = await CustomRobotState.compute_FK(
+                self.robot_state, ['fer_hand_tcp']
+            )
             end_effector_pose = fk_solution[0]
             goal_pose.position = end_effector_pose[0].pose.position
 
         if not goal_pose.orientation:
-            fk_solution = await CustomRobotState.compute_FK(self.robot_state, ['fer_hand_tcp'])
+            fk_solution = await CustomRobotState.compute_FK(
+                self.robot_state, ['fer_hand_tcp']
+            )
             end_effector_pose = fk_solution[0]
             goal_pose.orientation = end_effector_pose[0].pose.orientation
 
         ik_solution = await CustomRobotState.compute_IK(
             self.robot_state, goal_pose, path.start_state.joint_state
-            )
+        )
 
         computed_joint_constraints = populate_joint_constraints(ik_solution)
         path.goal_constraints = computed_joint_constraints
 
-        attached_collision_objects = await self.planning_scene.get_attached_collision_objects()
+        attached_collision_objects = (
+            await self.planning_scene.get_attached_collision_objects()
+        )
         path.start_state.attached_collision_objects = attached_collision_objects
         if save_plan:
             self.save_plan(path, plan_name)
@@ -212,11 +246,13 @@ class MotionPlanner:
             await self.execute_plan(path)
         return path
 
-    def _get_cartesian_path_request(self, waypoints: List[Pose],
-                                    max_step: float = 0.1,
-                                    avoid_collisions: bool = True,
-                                    path_constraints: Constraints = Constraints()
-                                    ) -> GetCartesianPath.Request:
+    def _get_cartesian_path_request(
+        self,
+        waypoints: List[Pose],
+        max_step: float = 0.1,
+        avoid_collisions: bool = True,
+        path_constraints: Constraints = Constraints(),
+    ) -> GetCartesianPath.Request:
         """
         Get the Cartesian path request to send to /compute_cartesian_path.
 
@@ -239,10 +275,7 @@ class MotionPlanner:
 
         stamp.sec = int(stamp.nanosec // 1.0e9)
 
-        request.header = Header(
-            stamp=stamp,
-            frame_id='base'
-        )
+        request.header = Header(stamp=stamp, frame_id='base')
 
         request.group_name = 'fer_arm'
 
@@ -257,11 +290,12 @@ class MotionPlanner:
         return request
 
     async def plan_cartesian_path(
-            self, waypoints: List[Pose],
-            max_step: float = 0.1,
-            avoid_collisions: bool = True,
-            path_constraints: Constraints = Constraints()
-            ) -> RobotTrajectory:
+        self,
+        waypoints: List[Pose],
+        max_step: float = 0.1,
+        avoid_collisions: bool = True,
+        path_constraints: Constraints = Constraints(),
+    ) -> RobotTrajectory:
         """
         Plan a Cartesian path from a sequence of waypoints.
 
@@ -278,7 +312,7 @@ class MotionPlanner:
         """
         path_request = self._get_cartesian_path_request(
             waypoints, max_step, avoid_collisions, path_constraints
-            )
+        )
         robot_traj = await self.plan_cart_path_client.call_async(path_request)
         robot_traj = robot_traj.solution
         return robot_traj
@@ -297,10 +331,12 @@ class MotionPlanner:
 
         self.execute_trajectory_client.wait_for_server()
 
-        self.execute_trajectory_future = self.execute_trajectory_client.send_goal_async(action)
+        self.execute_trajectory_future = self.execute_trajectory_client.send_goal_async(
+            action
+        )
         self.execute_trajectory_future.add_done_callback(
             self._execute_trajectory_response_callback
-            )
+        )
 
     def _execute_trajectory_response_callback(self, future):
         """
@@ -329,8 +365,8 @@ class MotionPlanner:
         return path
 
     async def plan_to_named_configuration(
-            self, start_pose: Optional[Pose], named_configuration: str
-            ):
+        self, start_pose: Optional[Pose], named_configuration: str
+    ):
         """
         Plan a path to a named configuration.
 
@@ -349,13 +385,15 @@ class MotionPlanner:
         else:
             start_state_ik_solution = await CustomRobotState.compute_IK(
                 self.robot_state, start_pose, 'fer_manipulator'
-                )
+            )
             path.start_state = start_state_ik_solution.solution
 
         path.goal_constraints = goal_constraints
         return path
 
-    def save_configuration(self, configuration_name: str, joint_configuration: Dict[str, float]):
+    def save_configuration(
+        self, configuration_name: str, joint_configuration: Dict[str, float]
+    ):
         """
         Save a joint configuration with a name.
 
@@ -370,7 +408,7 @@ class MotionPlanner:
                 position=angle,
                 tolerance_below=0.0001,
                 tolerance_above=0.0001,
-                weight=1.0
+                weight=1.0,
             )
             for joint, angle in joint_configuration.items()
         ]

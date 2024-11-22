@@ -1,3 +1,16 @@
+# Copyright 2024 David davidkh@u.northwestern.edu
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 from typing import List
 
 from geometry_msgs.msg import PoseStamped
@@ -5,11 +18,12 @@ from geometry_msgs.msg import PoseStamped
 from moveit_msgs.msg import RobotState as MoveitRobotState
 from moveit_msgs.srv import GetPositionFK, GetPositionIK
 
+from object_mover.utils import home_joint_positions, robot_joints
+
 from rclpy.node import Node
 
 from sensor_msgs.msg import JointState
 
-from object_mover.utils import robot_joints, home_joint_positions
 
 class RobotState:
     """Class that can compute forward or inverse kinematics of the robot."""
@@ -17,7 +31,8 @@ class RobotState:
     def __init__(self, node: Node):
         self.node = node
         self.joint_state_sub = self.node.create_subscription(
-            JointState, '/joint_states', self.joint_state_callback, 10)
+            JointState, '/joint_states', self.joint_state_callback, 10
+        )
         self.fk_client = self.node.create_client(GetPositionFK, '/compute_fk')
         self.ik_client = self.node.create_client(GetPositionIK, '/compute_ik')
         self.joint_state = None
@@ -32,10 +47,12 @@ class RobotState:
         """
         self.joint_state = msg
 
-    async def compute_IK(self,
-                         goal_pose: PoseStamped,
-                         joint_state: JointState = None,
-                         group_name: str = 'fer_manipulator'):
+    async def compute_IK(
+        self,
+        goal_pose: PoseStamped,
+        joint_state: JointState = None,
+        group_name: str = 'fer_manipulator',
+    ):
         """
         Compute inverse kinematics of the system.
 

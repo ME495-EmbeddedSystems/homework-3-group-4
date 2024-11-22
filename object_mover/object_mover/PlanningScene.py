@@ -1,33 +1,55 @@
+# Copyright 2024 David davidkh@u.northwestern.edu
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 from typing import List
 
 from geometry_msgs.msg import Pose
 from moveit_msgs.msg import AttachedCollisionObject, CollisionObject
 from moveit_msgs.srv import ApplyPlanningScene, GetPlanningScene
 import rclpy
+from rclpy.node import Node
 from shape_msgs.msg import SolidPrimitive
 
 
 class PlanningScene:
     """Define the PlanningScene class."""
 
-    def __init__(self, node: rclpy.node):
+    def __init__(self, node: Node):
         """Initialize the PlanningScene class."""
         self.node = node
-        self.get_scene = self.node.create_client(GetPlanningScene, '/get_planning_scene')
+        self.get_scene = self.node.create_client(
+            GetPlanningScene, '/get_planning_scene'
+        )
         while not self.get_scene.wait_for_service(timeout_sec=1.0):
-            self.node.get_logger().info('get_scene service not available, waiting again...')
+            self.node.get_logger().info(
+                'get_scene service not available, waiting again...'
+            )
 
-        self.apply_scene = self.node.create_client(ApplyPlanningScene, '/apply_planning_scene')
+        self.apply_scene = self.node.create_client(
+            ApplyPlanningScene, '/apply_planning_scene'
+        )
         while not self.apply_scene.wait_for_service(timeout_sec=1.0):
-            self.node.get_logger().info('apply_scene service not available, waiting again...')
+            self.node.get_logger().info(
+                'apply_scene service not available, waiting again...'
+            )
         self.objects = {}
         self.attach_objects = {}
         self.collision_object_publisher = self.node.create_publisher(
             CollisionObject, '/collision_object', 10
-            )
+        )
         self.attached_collision_object_publisher = self.node.create_publisher(
             AttachedCollisionObject, '/attached_collision_object', 10
-            )
+        )
 
     async def add_collision_objects(self, name, position, dimension):
         """
@@ -42,7 +64,9 @@ class PlanningScene:
         :return: the response of the service call
         :rtype: ApplyPlanningScene.Response
         """
-        self.scene_response = await self.get_scene.call_async(GetPlanningScene.Request())
+        self.scene_response = await self.get_scene.call_async(
+            GetPlanningScene.Request()
+        )
         collision_object = CollisionObject()
         collision_object.header.frame_id = 'base'
         collision_object.id = name
@@ -64,7 +88,7 @@ class PlanningScene:
         self.scene_response.scene.world.collision_objects.append(collision_object)
         response = await self.apply_scene.call_async(
             ApplyPlanningScene.Request(scene=self.scene_response.scene)
-            )
+        )
         return response
 
     async def remove_box(self, name):
@@ -77,7 +101,9 @@ class PlanningScene:
         :rtype: ApplyPlanningScene.Response
         """
         # Fetch the current planning scene
-        self.scene_response = await self.get_scene.call_async(GetPlanningScene.Request())
+        self.scene_response = await self.get_scene.call_async(
+            GetPlanningScene.Request()
+        )
 
         # Remove non-attached collision objects
         for obj in self.scene_response.scene.world.collision_objects:
@@ -89,16 +115,24 @@ class PlanningScene:
             self.collision_object_publisher.publish(remove_obj)
 
         # Remove attached objects
-        for attached_obj in self.scene_response.scene.robot_state.attached_collision_objects:
+        for (
+            attached_obj
+        ) in self.scene_response.scene.robot_state.attached_collision_objects:
             remove_attached_obj = AttachedCollisionObject()
             remove_attached_obj.object.id = attached_obj.object.id
             remove_attached_obj.object.operation = CollisionObject.REMOVE
             remove_attached_obj.link_name = attached_obj.link_name
-            remove_attached_obj.object.header.stamp = self.node.get_clock().now().to_msg()
-            remove_attached_obj.object.header.frame_id = attached_obj.object.header.frame_id
+            remove_attached_obj.object.header.stamp = (
+                self.node.get_clock().now().to_msg()
+            )
+            remove_attached_obj.object.header.frame_id = (
+                attached_obj.object.header.frame_id
+            )
             self.attached_collision_object_publisher.publish(remove_attached_obj)
 
-        self.scene_response = await self.get_scene.call_async(GetPlanningScene.Request())
+        self.scene_response = await self.get_scene.call_async(
+            GetPlanningScene.Request()
+        )
 
         # Step 2: Re-add objects except the one to be removed
         for obj_name, obj in self.objects.items():
@@ -116,7 +150,9 @@ class PlanningScene:
             del self.attach_objects[name]
 
         # Verify that the object was removed successfully
-        self.scene_response = await self.get_scene.call_async(GetPlanningScene.Request())
+        self.scene_response = await self.get_scene.call_async(
+            GetPlanningScene.Request()
+        )
 
     async def attach_object(self, name):
         """
@@ -133,7 +169,9 @@ class PlanningScene:
         )
 
         # Step 2: Find the object with the given name in the current_scene world collision objects
-        collision_objects: List[CollisionObject] = current_scene.scene.world.collision_objects
+        collision_objects: List[CollisionObject] = (
+            current_scene.scene.world.collision_objects
+        )
         # Case 1: Object is found
         collision_object: CollisionObject = None
         for obj in collision_objects:
@@ -144,7 +182,7 @@ class PlanningScene:
                 except KeyError:
                     self.node.get_logger().error(
                         f'Object with name {name} not found in the internal dictionary'
-                        )
+                    )
                 break
 
         current_scene.scene.world.collision_objects = []
@@ -157,9 +195,15 @@ class PlanningScene:
             attached_object = AttachedCollisionObject()
             attached_object.object = collision_object
             attached_object.link_name = 'fer_hand_tcp'
-            attached_object.touch_links = ['fer_hand', 'fer_leftfinger', 'fer_rightfinger']
+            attached_object.touch_links = [
+                'fer_hand',
+                'fer_leftfinger',
+                'fer_rightfinger',
+            ]
             attached_object.weight = 0.0
-            current_scene.scene.robot_state.attached_collision_objects.append(attached_object)
+            current_scene.scene.robot_state.attached_collision_objects.append(
+                attached_object
+            )
 
             # Step 4: Add to the internal dictionary
             self.attach_objects[name] = attached_object
@@ -187,18 +231,24 @@ class PlanningScene:
         :return: the response of the service call
         :rtype: ApplyPlanningScene.Response
         """
-        self.scene_response = await self.get_scene.call_async(GetPlanningScene.Request())
+        self.scene_response = await self.get_scene.call_async(
+            GetPlanningScene.Request()
+        )
 
         try:
             for obj in self.scene_response.scene.robot_state.attached_collision_objects:
                 if obj.object.id == name:
                     detach_object = obj
-            self.scene_response.scene.world.collision_objects.append(detach_object.object)
+            self.scene_response.scene.world.collision_objects.append(
+                detach_object.object
+            )
         except BaseException:
             self.node.get_logger().info(
                 '-------------The object is not found in the attached objects------------------'
-                )
-        self.scene_response.scene.robot_state.attached_collision_objects.remove(detach_object)
+            )
+        self.scene_response.scene.robot_state.attached_collision_objects.remove(
+            detach_object
+        )
         response = await self.apply_scene.call_async(
             ApplyPlanningScene.Request(scene=self.scene_response.scene)
         )
@@ -211,12 +261,14 @@ class PlanningScene:
         :return: the response of the service call
         :rtype: ApplyPlanningScene.Response
         """
-        self.scene_response = await self.get_scene.call_async(GetPlanningScene.Request())
+        self.scene_response = await self.get_scene.call_async(
+            GetPlanningScene.Request()
+        )
         self.scene_response.scene.world.collision_objects.clear()
         self.scene_response.scene.robot_state.attached_collision_objects.clear()
         response = await self.apply_scene.call_async(
             ApplyPlanningScene.Request(scene=self.scene_response.scene)
-            )
+        )
         return response
 
     async def get_collision_objects(self):

@@ -1,3 +1,16 @@
+# Copyright 2024 David davidkh@u.northwestern.edu
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 from moveit_msgs.msg import Constraints, JointConstraint, RobotState
 
 
@@ -17,8 +30,9 @@ def robot_joints() -> list[str]:
         'fer_joint6',
         'fer_joint7',
         'fer_finger_joint1',
-        'fer_finger_joint2'
+        'fer_finger_joint2',
     ]
+
 
 def home_joint_positions() -> list[float]:
     """
@@ -26,7 +40,17 @@ def home_joint_positions() -> list[float]:
 
     :returns: The list of home joint positions.
     """
-    return [0.0, -0.7853981633974483, 0.0, -2.356194490192345, 0.0, 1.5707963267948966, 0.7853981633974483, 0.0, 0.0]
+    return [
+        0.0,
+        -0.7853981633974483,
+        0.0,
+        -2.356194490192345,
+        0.0,
+        1.5707963267948966,
+        0.7853981633974483,
+        0.0,
+        0.0,
+    ]
 
 
 def populate_joint_constraints(ik_solution: RobotState) -> list[Constraints]:
@@ -62,15 +86,15 @@ def populate_gripper_constraints(gripper_configuration: str) -> list[Constraints
                 position=0.035,
                 tolerance_above=0.0001,
                 tolerance_below=0.0001,
-                weight=1.0
+                weight=1.0,
             ),
             JointConstraint(
                 joint_name='fer_finger_joint2',
                 position=0.035,
                 tolerance_above=0.0001,
                 tolerance_below=0.0001,
-                weight=1.0
-            )
+                weight=1.0,
+            ),
         ]
     if gripper_configuration == 'close':
         goal_constraints[0].joint_constraints = [
@@ -79,14 +103,14 @@ def populate_gripper_constraints(gripper_configuration: str) -> list[Constraints
                 position=0.000,
                 tolerance_above=0.0001,
                 tolerance_below=0.0001,
-                weight=1.0
+                weight=1.0,
             ),
             JointConstraint(
                 joint_name='fer_finger_joint2',
                 position=0.000,
                 tolerance_above=0.0001,
                 tolerance_below=0.0001,
-                weight=1.0
-            )
+                weight=1.0,
+            ),
         ]
     return goal_constraints
