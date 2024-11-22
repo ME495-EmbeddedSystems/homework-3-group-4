@@ -16,7 +16,6 @@ from typing import List
 from geometry_msgs.msg import Pose
 from moveit_msgs.msg import AttachedCollisionObject, CollisionObject
 from moveit_msgs.srv import ApplyPlanningScene, GetPlanningScene
-import rclpy
 from rclpy.node import Node
 from shape_msgs.msg import SolidPrimitive
 
