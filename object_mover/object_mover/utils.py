@@ -106,7 +106,7 @@ def populate_gripper_constraints(gripper_configuration: str) -> list[Constraints
                 weight=1.0,
             ),
             JointConstraint(
-                joint_name='\fer_finger_joint2',
+                joint_name='fer_finger_joint2',
                 position=0.000,
                 tolerance_above=0.0001,
                 tolerance_below=0.0001,
