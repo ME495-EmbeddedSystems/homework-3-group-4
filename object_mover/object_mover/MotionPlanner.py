@@ -103,7 +103,7 @@ class MotionPlanner:
         if not self.execute_trajectory_client.wait_for_server(timeout_sec=10):
             raise RuntimeError('execute_trajectory client action server not ready')
 
-    async def execute_plan(self, plan: MotionPlanRequest) -> bool:
+    async def execute_plan(self, plan: MotionPlanRequest):
         """
         Execute a previously planned motion.
 
@@ -129,7 +129,7 @@ class MotionPlanner:
             return False
         # print type of goal_handle
         result = await goal_handle.get_result_async()
-        return result.result.error_code == 0
+        return result.result.error_code
 
     async def plan_joint_path(
         self,
@@ -188,7 +188,8 @@ class MotionPlanner:
             self.save_plan(path, plan_name)
 
         if execute:
-            await self.execute_plan(path)
+            result = await self.execute_plan(path)
+            return result
 
         return path
 
@@ -265,7 +266,12 @@ class MotionPlanner:
             self.save_plan(path, plan_name)
 
         if execute:
+<<<<<<< HEAD
             await self.execute_plan(path)
+=======
+           result = await self.execute_plan(path)
+           return result
+>>>>>>> david/franka-pose-testing
         return path
 
     def _get_cartesian_path_request(
