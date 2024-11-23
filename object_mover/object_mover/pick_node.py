@@ -124,6 +124,9 @@ class PickNode(Node):
         await self.mpi.motion_planner.toggle_gripper('open')
         self.get_logger().info('Step 8: Finished dropping object')
 
+        # Step 9: Detach object from arm
+        await self.mpi.planning_scene.detach_object('box')
+
         return response
 
     async def go_home_callback(self, request: Empty, response):
