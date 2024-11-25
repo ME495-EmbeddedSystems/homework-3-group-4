@@ -1,0 +1,5 @@
+[1] Code Inspired by Joseph Blom
+
+Optional Citation
+This was used to reference all the move it types. It is not for melodic but we found it to be consistent with jazzy
+[2] https://docs.ros.org/en/melodic/api/moveit_msgs/html/index-msg.html Accessed through November 10 - November 22

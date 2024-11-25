@@ -89,12 +89,12 @@ class TestPose(unittest.TestCase):
         object_pose.orientation.y = 0.0
         object_pose.orientation.z = 0.0
         object_pose.orientation.w = 0.0
-
+        # .......... Begin_Citation [1] .......... #
         ex = rclpy.get_global_executor()
 
         future = ex.create_task(self.mpi.plan_path(goal_pose=object_pose))
         rclpy.spin_until_future_complete(self.node, future, executor=ex)
-
+        # .......... End_Citation [1] .......... #
         result = future.result()
 
         # SUCCESS=1
