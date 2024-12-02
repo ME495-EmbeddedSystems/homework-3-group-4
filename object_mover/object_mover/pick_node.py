@@ -102,7 +102,11 @@ class PickNode(Node):
         _ = await self.mpi.exec_path(traj3)
         self.get_logger().info('Step 3: Finished moving arm to object')
         self.mpi.motion_planner.save_plan(plan = traj3, plan_name='plan_3')
-        self.get_logger().info(f'Trajectory3: {self.mpi.motion_planner.inspect_plan(plan_name='plan_3')}')
+        view_plan = self.mpi.motion_planner.inspect_plan(plan_name='plan_4')
+        if(view_plan is None):
+            self.get_logger().error("File is not found or no such plan exists!")
+        else:
+            self.get_logger().info(f'Trajectory3: {view_plan}')
 
         # Step 4: Closing grippers
         await self.mpi.motion_planner.toggle_gripper('close')

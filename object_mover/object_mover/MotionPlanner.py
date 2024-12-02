@@ -395,8 +395,7 @@ class MotionPlanner:
         return path
 
     async def plan_to_named_configuration(
-        self, start_pose: Optional[Pose], named_configuration: str
-    ):
+        self, start_pose: Optional[Pose], named_configuration: str, file_name: str = './src/homework-3-group-4/saved_configurations.pkl'):
         """
         Plan a path to a named configuration.
 
@@ -405,7 +404,14 @@ class MotionPlanner:
         :returns: The planned motion path request.
         :rtype: moveit_msgs.msg.MotionPlanRequest
         """
-        goal_constraints = self.saved_configurations[named_configuration]
+        try:
+            with open(file_name, 'rb') as f:
+                saved_dict = pickle.load(f)
+            goal_constraints = saved_dict.get(named_configuration, None)
+            if(goal_constraints is None):
+                return None
+        except (FileNotFoundError, EOFError): 
+            return None 
         path = MotionPlanRequest()
         path.group_name = 'fer_manipulator'
         current_state = self.get_current_robot_state()
@@ -422,8 +428,7 @@ class MotionPlanner:
         return path
 
     def save_configuration(
-        self, configuration_name: str, joint_configuration: Dict[str, float]
-    ):
+        self, configuration_name: str, joint_configuration: Dict[str, float], file_name: str = './src/homework-3-group-4/saved_configurations.pkl'):
         """
         Save a joint configuration with a name.
 
@@ -442,9 +447,17 @@ class MotionPlanner:
             )
             for joint, angle in joint_configuration.items()
         ]
-        self.saved_configurations[configuration_name] = saved_joint_constraints
+        try:
+            with open(file_name, 'rb') as f:
+                saved_dict = pickle.load(f)
+        except (FileNotFoundError, EOFError):
+            saved_dict = {}
 
-    def save_plan(self, plan: MotionPlanRequest | RobotTrajectory, plan_name: str, file_name: str = 'saved_plans.pkl'):
+        saved_dict[configuration_name] = joint_configuration
+        with open(file_name, 'wb') as f:
+            pickle.dump(saved_dict, f)
+
+    def save_plan(self, plan: MotionPlanRequest | RobotTrajectory, plan_name: str, file_name: str = './src/homework-3-group-4/saved_plans.pkl'):
         """
         Save a motion plan for future execution.
 
@@ -464,7 +477,7 @@ class MotionPlanner:
             pickle.dump(saved_dict, f)
 
     def inspect_plan(self, plan_name: str, 
-                     file_name: str = 'saved_plans.pkl'):
+                     file_name: str = './src/homework-3-group-4/saved_plans.pkl'):
         """
         Inspect a previously saved motion plan.
 
@@ -475,8 +488,7 @@ class MotionPlanner:
             with open(file_name, 'rb') as f:
                 saved_dict = pickle.load(f)
             return saved_dict.get(plan_name, None)
-        except (FileNotFoundError, EOFError):
-            print("File is not found or is empty!")
+        except (FileNotFoundError, EOFError): 
             return None
     def get_current_robot_state(self) -> RobotState:
         """
