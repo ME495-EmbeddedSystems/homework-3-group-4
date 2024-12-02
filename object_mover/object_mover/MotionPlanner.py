@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import pickle
+
 from typing import Dict, List, Optional
 
 from builtin_interfaces.msg import Time
@@ -442,7 +444,7 @@ class MotionPlanner:
         ]
         self.saved_configurations[configuration_name] = saved_joint_constraints
 
-    def save_plan(self, plan: MotionPlanRequest | RobotTrajectory, plan_name: str):
+    def save_plan(self, plan: MotionPlanRequest | RobotTrajectory, plan_name: str, file_name: str = 'saved_plans.pkl'):
         """
         Save a motion plan for future execution.
 
@@ -450,17 +452,32 @@ class MotionPlanner:
         :type plan: moveit_msgs.msg.MotionPlanRequest | moveit_msgs.msg.RobotTrajectory
         :param plan_name: The name of the plan to be saved.
         """
-        self.saved_plans[plan_name] = plan
+        try:
+            with open(file_name, 'rb') as f:
+                saved_dict = pickle.load(f)
+        except (FileNotFoundError, EOFError):
+            saved_dict = {}
 
-    def inspect_plan(self, plan_name: str):
+        saved_dict[plan_name] = plan
+
+        with open(file_name, 'wb') as f:
+            pickle.dump(saved_dict, f)
+
+    def inspect_plan(self, plan_name: str, 
+                     file_name: str = 'saved_plans.pkl'):
         """
         Inspect a previously saved motion plan.
 
         :param plan_name: The name of the motion plan to inspect.
         """
         # Find a way to format this better
-        print(self.saved_plans[plan_name])
-
+        try:
+            with open(file_name, 'rb') as f:
+                saved_dict = pickle.load(f)
+            return saved_dict.get(plan_name, None)
+        except (FileNotFoundError, EOFError):
+            print("File is not found or is empty!")
+            return None
     def get_current_robot_state(self) -> RobotState:
         """
         Get the current state of the robot.

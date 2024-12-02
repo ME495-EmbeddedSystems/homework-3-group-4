@@ -88,7 +88,8 @@ class PickNode(Node):
 
         # Step 1: Move arm right above object
         pose1.position.z = object_pose.position.z + 0.2
-        _ = await self.mpi.plan_path(goal_pose=pose1)
+        traj1 = await self.mpi.plan_path(goal_pose=pose1)
+        _ = await self.mpi.exec_path(traj1)
         self.get_logger().info('Step 1: Finished moving arm above object')
 
         # Step 2: Open Grippers
@@ -97,8 +98,11 @@ class PickNode(Node):
 
         # Step 3: Move arm to object
         pose2 = object_pose
-        _ = await self.mpi.plan_path(goal_pose=pose2)
+        traj3 = await self.mpi.plan_path(goal_pose=pose2)
+        _ = await self.mpi.exec_path(traj3)
         self.get_logger().info('Step 3: Finished moving arm to object')
+        self.mpi.motion_planner.save_plan(plan = traj3, plan_name='plan_3')
+        self.get_logger().info(f'Trajectory3: {self.mpi.motion_planner.inspect_plan(plan_name='plan_3')}')
 
         # Step 4: Closing grippers
         await self.mpi.motion_planner.toggle_gripper('close')
@@ -111,13 +115,15 @@ class PickNode(Node):
         # Step 6: Move arm up
         pose3 = object_pose
         pose3.position.z = object_pose.position.z + 0.3
-        _ = await self.mpi.plan_path(goal_pose=pose3)
+        traj6 = await self.mpi.plan_path(goal_pose=pose3)
+        _ = await self.mpi.exec_path(traj6)
         self.get_logger().info('Step 6: Finished moving arm up')
 
         # Step 7: Move arm to other side of obstacle
         pose4 = object_pose
         pose4.position.y = object_pose.position.y + 0.3
-        _ = await self.mpi.plan_path(goal_pose=pose4)
+        traj7 = await self.mpi.plan_path(goal_pose=pose4)
+        _ = await self.mpi.exec_path(traj7)
         self.get_logger().info('Step 7: Finished moving arm to other side of obstacle')
 
         # Step 8 Drop object
