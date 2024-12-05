@@ -36,6 +36,11 @@ def generate_launch_description():
                 default_value='false',
                 description='Boolean flag to indicate production mode: true or false.',
             ),
+            DeclareLaunchArgument(
+                'use_pick_node',
+                default_value='false',
+                description='Boolean flag to indicate whether to use pick node or not.',
+            ),
             Node(
                 package='rviz2',
                 condition=IfCondition(
@@ -78,6 +83,7 @@ def generate_launch_description():
                 ],
             ),
             Node(
+                condition=IfCondition(LaunchConfiguration('use_pick_node')),
                 package='object_mover',
                 executable='pick_node',
             ),

@@ -395,7 +395,7 @@ class MotionPlanner:
         return path
 
     async def plan_to_named_configuration(
-        self, start_pose: Optional[Pose], named_configuration: str, file_name: str = './src/homework-3-group-4/saved_configurations.pkl'):
+        self, start_pose: Optional[Pose], named_configuration: str, file_name: str = 'saved_configurations.pkl'):
         """
         Plan a path to a named configuration.
 
@@ -428,7 +428,7 @@ class MotionPlanner:
         return path
 
     def save_configuration(
-        self, configuration_name: str, joint_configuration: Dict[str, float], file_name: str = './src/homework-3-group-4/saved_configurations.pkl'):
+        self, configuration_name: str, joint_configuration: Dict[str, float], file_name: str = 'saved_configurations.pkl'):
         """
         Save a joint configuration with a name.
 
@@ -457,7 +457,7 @@ class MotionPlanner:
         with open(file_name, 'wb') as f:
             pickle.dump(saved_dict, f)
 
-    def save_plan(self, plan: MotionPlanRequest | RobotTrajectory, plan_name: str, file_name: str = './src/homework-3-group-4/saved_plans.pkl'):
+    def save_plan(self, plan: MotionPlanRequest | RobotTrajectory, plan_name: str, file_name: str = 'saved_plans.pkl'):
         """
         Save a motion plan for future execution.
 
@@ -477,7 +477,7 @@ class MotionPlanner:
             pickle.dump(saved_dict, f)
 
     def inspect_plan(self, plan_name: str, 
-                     file_name: str = './src/homework-3-group-4/saved_plans.pkl'):
+                     file_name: str = 'saved_plans.pkl'):
         """
         Inspect a previously saved motion plan.
 
