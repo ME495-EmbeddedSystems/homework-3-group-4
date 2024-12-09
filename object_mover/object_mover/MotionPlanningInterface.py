@@ -77,6 +77,20 @@ class MotionPlanningInterface:
             path = await self.motion_planner.plan_cartesian_path(waypoints)
 
         return path
+    
+    async def go_home_callback(self):
+        """
+        Trigger to move arm to home position.
+
+        :param request: service request object
+        :type request: std_msgs.msg.Empty
+        :returns: response to service call
+        :rtype: bool
+        """
+        # Plan path to home
+        await self.plan_path(goal_joints=self.robot_state.home_joint_state)
+        self.get_logger().info('Finished moving arm to home position')
+
 
     async def exec_path(self, path: MotionPlanRequest = None):
         """
