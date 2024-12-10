@@ -41,6 +41,7 @@ from sensor_msgs.msg import JointState
 from std_msgs.msg import Header
 
 
+VELOCITY_SCALING = 0.4
 class MotionPlanner:
     """
     A class for planning motion paths using MoveIt.
@@ -160,7 +161,7 @@ class MotionPlanner:
             min_corner=Vector3(x=-2.0, y=-2.0, z=0.0),
             max_corner=Vector3(x=2.0, y=2.0, z=2.0)
         )
-        path.max_velocity_scaling_factor = 0.1
+        path.max_velocity_scaling_factor = VELOCITY_SCALING
         path.allowed_planning_time = 30.0
         path.max_acceleration_scaling_factor
         path.start_state.joint_state = JointState()
@@ -222,9 +223,9 @@ class MotionPlanner:
             min_corner=Vector3(x=-2.0, y=-2.0, z=0.0),
             max_corner=Vector3(x=2.0, y=2.0, z=2.0)
         )
-        path.max_velocity_scaling_factor = 0.1
+        path.max_velocity_scaling_factor = VELOCITY_SCALING
         path.allowed_planning_time = 30.0
-        path.max_acceleration_scaling_factor = 0.1
+        path.max_acceleration_scaling_factor = 0.2
         path.planner_id = 'move_group'
         path.group_name = 'fer_manipulator'
         current_state = self.get_current_robot_state()
@@ -304,7 +305,7 @@ class MotionPlanner:
         request.header = Header(stamp=stamp, frame_id='base')
         request.link_name = 'fer_hand_tcp'
         request.group_name = 'fer_arm'
-        request.max_velocity_scaling_factor = 0.1
+        request.max_velocity_scaling_factor = VELOCITY_SCALING
         request.max_acceleration_scaling_factor = 0.1
         request.waypoints = waypoints
 
@@ -384,7 +385,7 @@ class MotionPlanner:
         """
         path = MotionPlanRequest()
         path.allowed_planning_time = 20.0
-        path.max_velocity_scaling_factor = 0.1
+        path.max_velocity_scaling_factor = VELOCITY_SCALING
         path.max_acceleration_scaling_factor = 0.1
         path.group_name = 'hand'
         current_state = self.get_current_robot_state()
