@@ -1,1 +1,1 @@
-ros2 service call /pick object_mover_interfaces/srv/PickPose "{pick_point: {position: {x: 0.49, y: 0.13, z: 0.03}, orientation: {x: 3.14, y: 3.14, z: 0.0, w: 0.0}}}"
+ros2 service call /pick object_mover_interfaces/srv/PickPose "{pick_point: {position: {x: 0.49, y: 0.13, z: 0.13}, orientation: {x: 3.14, y: 3.14, z: 0.0, w: 0.0}}}"

@@ -222,7 +222,7 @@ class MotionPlanner:
             min_corner=Vector3(x=-2.0, y=-2.0, z=0.0),
             max_corner=Vector3(x=2.0, y=2.0, z=2.0)
         )
-        path.max_velocity_scaling_factor = 0.1
+        path.max_velocity_scaling_factor = 0.7
         path.allowed_planning_time = 30.0
         path.max_acceleration_scaling_factor = 0.1
         path.planner_id = 'move_group'
