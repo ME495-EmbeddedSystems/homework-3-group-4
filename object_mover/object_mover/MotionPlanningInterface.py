@@ -89,7 +89,7 @@ class MotionPlanningInterface:
         """
         # Plan path to home
         await self.plan_path(goal_joints=self.robot_state.home_joint_state)
-        self.get_logger().info('Finished moving arm to home position')
+        self.node.get_logger().info('Finished moving arm to home position')
 
 
     async def exec_path(self, path: MotionPlanRequest = None):
