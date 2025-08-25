@@ -9,7 +9,7 @@ an obstacle.
 
 ## Quickstart
 1. After sourcing franka workspace, use `ros2 launch franka_fer_moveit_config demo.launch.py` to initialize franka and rviz
-2. Use `ros2 launch object_mover object_mover.launch.py` to launch the pick node
+2. Use `ros2 launch object_mover object_mover.launch.py use_pick_node:=true` to launch the pick node
 3. Run `ros2 service call /pick object_mover_interfaces/srv/PickPose "{pick_point: {position: {x: 0.49, y: 0.13, z: 0.03}, orientation: {x: 0.707106 , y: 0.707106, z: 0.0, w: 0.0}}}` to trigger the pick service to enable pick task
 4. Here is a video of the pick task conducted:
 
